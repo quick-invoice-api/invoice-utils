@@ -1,7 +1,9 @@
 name: Documentation
 on:
   push:
-    branches: [ main, feature/*, refs/pull/*/merge ]
+    branches: [ main, refs/pull/*/merge ]
+    paths:
+      - "docs/**"
   pull_request:
     types: [ opened ]
     branches: [ "main" ]
