@@ -1,14 +1,14 @@
-name: CI
+name: Documentation
 on:
   push:
-    branches: [ main, refs/pull/*/merge ]
+    branches: [ main, feature/*, refs/pull/*/merge ]
   pull_request:
     types: [ opened ]
     branches: [ "main" ]
     paths:
       - "doc/**"
 jobs:
-  container-test-job:
+  publish-gh-pages:
     runs-on: ubuntu-latest
     container:
       image: andreiolar1/python-poetry-mkdocs:latest
