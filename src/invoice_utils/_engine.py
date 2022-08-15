@@ -1,5 +1,6 @@
 import json
 import pathlib
+from datetime import datetime
 from json import JSONDecodeError
 from typing import Callable, Any
 
@@ -44,4 +45,18 @@ class InvoicingEngine:
         if not validation_callback(value) and raised:
             raise raised
 
-
+    def process(self, invoice_no: int, invoice_date: datetime):
+        return {
+            "header": {
+                "number": invoice_no,
+                "date": invoice_date,
+                "customer": {},
+                "emitter": {}
+            },
+            "details": [],
+            "totals": {
+                "price": 0,
+                "total": 0,
+                "extra": {}
+            }
+        }
