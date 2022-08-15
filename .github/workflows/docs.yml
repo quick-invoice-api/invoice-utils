@@ -1,0 +1,23 @@
+name: Documentation
+on:
+  push:
+    branches: [ main, refs/pull/*/merge ]
+    paths:
+      - "docs/**"
+  pull_request:
+    types: [ opened ]
+    branches: [ "main" ]
+    paths:
+      - "docs/**"
+jobs:
+  publish-gh-pages:
+    runs-on: ubuntu-latest
+    container:
+      image: andreiolar1/python-poetry-mkdocs:latest
+    steps:
+      - name: git checkout
+        uses: actions/checkout@v2
+      - name: Run mkdocs
+        run: mkdocs build -c
+      - name: Publish Github Pages
+        run: mkdocs gh-deploy
