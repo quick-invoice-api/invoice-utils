@@ -2,7 +2,7 @@ import json
 import pathlib
 from datetime import datetime
 from json import JSONDecodeError
-from typing import Callable, Any
+from typing import Callable, Any, Union
 
 
 class InvoicingInputError(Exception):
@@ -24,34 +24,21 @@ class InvoicingInputFormatError(InvoicingInputError):
 
 class InvoicingEngine:
     def __init__(self, file_name: str):
-        self.__validate(
-            file_name,
-            lambda s: s and pathlib.Path(s).exists(),
-            raised=InvoicingInputError(file_name)
-        )
+        if not file_name:
+            raise InvoicingInputError(file_name)
         fpath = pathlib.Path(file_name)
-        self.__validate(fpath, self.__is_file_content_valid_json, raised=InvoicingInputFormatError(fpath.name))
+        if not fpath.exists():
+            raise InvoicingInputError(file_name)
 
-    @classmethod
-    def __is_file_content_valid_json(cls, fpath: pathlib.Path) -> bool:
         try:
-            json.loads(fpath.read_bytes())
-            return True
-        except JSONDecodeError:
-            return False
+            self.__rules: list[dict] = json.loads(fpath.read_bytes())
+        except JSONDecodeError as ex:
+            raise InvoicingInputFormatError(fpath.name) from ex
 
-    @classmethod
-    def __validate(cls, value: Any, validation_callback: Callable[[Any], bool], raised: BaseException = None):
-        if not validation_callback(value) and raised:
-            raise raised
-
-    def process(self, invoice_no: int, invoice_date: datetime):
-        return {
+        self.__invoice = {
             "header": {
-                "number": invoice_no,
-                "date": invoice_date,
-                "customer": {},
-                "emitter": {}
+                "buyer": {},
+                "seller": {}
             },
             "details": [],
             "totals": {
@@ -60,3 +47,13 @@ class InvoicingEngine:
                 "extra": {}
             }
         }
+
+    def process(self, invoice_no: int, invoice_date: datetime):
+        header = self.__invoice["header"]
+        header["number"] = invoice_no
+        header["date"] = invoice_date
+
+        header_rules = [rule for rule in self.__rules if rule.get("type", "") == "header"]
+        header["buyer"] = header_rules[0]["buyer"] if len(header_rules) > 0 else {}
+        header["seller"] = header_rules[0]["seller"] if len(header_rules) > 0 else {}
+        return self.__invoice

@@ -8,8 +8,20 @@ packages = [
     { include = "invoice_utils", from = "src" }
 ]
 
+[tool.pylint.main]
+py-version = [3, 10]
+ignore-paths = ["tests"]
+ignore-patterns = ["^\\.#", "^_.+$"]
+disable = ["C0114", "R0903"]
+
+[tool.pylint.basic]
+good-names = ["i", "j", "k", "x", "y", "z", "ex", "Run", "_"]
+
+[tool.pylint.classes]
+check-protected-access-in-special-methods = true
+
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^0.971"
