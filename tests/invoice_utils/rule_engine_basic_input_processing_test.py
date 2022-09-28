@@ -68,21 +68,23 @@ def test_process_one_item_with_basic_template(input_data_resolver):
 
     assert output["items"] == [
         {
+            "item_no": 1,
             "currency": "XYZ",
             "text": "test item",
-            "quantity": 2.72,
-            "unit_price": 3.14,
-            "item_price": 8.5397,
+            "quantity": 2.71828182,
+            "unit_price": 3.14159265,
+            "item_price": 8.539734186340624,
             "tax": 0,
-            "item_total": 8.5397,
+            "item_total": 8.539734186340624,
         },
         {
+            "item_no": 1,
             "currency": "ABC",
-            "item_price": 9.8207,
-            "item_total": 9.8207,
-            "quantity": 2.72,
+            "item_price": 9.820694314291718,
+            "item_total": 9.820694314291718,
+            "quantity": 2.71828182,
             "tax": 0,
             "text": "test item",
-            "unit_price": 3.61,
+            "unit_price": 3.6128315475,
         },
     ]

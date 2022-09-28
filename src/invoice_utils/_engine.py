@@ -42,18 +42,19 @@ class InvoicingEngine:
             "totals": {"price": 0, "total": 0, "extra": {}},
         }
 
-    def _process_item(self, item: InvoicedItem):
+    def _process_item(self, item_no: int, item: InvoicedItem):
         items = self.__invoice["items"]
         currency_info = self.__invoice["header"]["currency"]
-        item_price = round(item.quantity * item.unit_price, 4)
+        item_price = item.quantity * item.unit_price
 
         # main currency
         items.append(
             {
+                "item_no": item_no,
                 "currency": currency_info["main"],
                 "text": item.text,
-                "quantity": round(item.quantity, 2),
-                "unit_price": round(item.unit_price, 2),
+                "quantity": item.quantity,
+                "unit_price": item.unit_price,
                 "item_price": item_price,
                 "tax": 0,
                 "item_total": item_price,
@@ -61,13 +62,14 @@ class InvoicingEngine:
         )
 
         for currency, rate in currency_info.get("exchangeRates", {}).items():
-            item_price_currency = round(item.quantity * item.unit_price * rate, 4)
+            item_price_currency = item.quantity * item.unit_price * rate
             items.append(
                 {
+                    "item_no": item_no,
                     "currency": currency,
                     "text": item.text,
-                    "quantity": round(item.quantity, 2),
-                    "unit_price": round(item.unit_price * rate, 2),
+                    "quantity": item.quantity,
+                    "unit_price": item.unit_price * rate,
                     "item_price": item_price_currency,
                     "tax": 0,
                     "item_total": item_price_currency,
@@ -103,7 +105,7 @@ class InvoicingEngine:
                 "main": main_currency,
                 "exchangeRates": exchange_rates,
             }
-        for item in items:
-            self._process_item(item)
+        for index, item in enumerate(items):
+            self._process_item(index + 1, item)
 
         return self.__invoice
