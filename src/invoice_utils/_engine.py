@@ -1,6 +1,7 @@
 import json
 import pathlib
 from datetime import datetime
+from decimal import Decimal
 from json import JSONDecodeError
 
 from invoice_utils._adt import InvoicedItem
@@ -62,14 +63,15 @@ class InvoicingEngine:
         )
 
         for currency, rate in currency_info.get("exchangeRates", {}).items():
-            item_price_currency = item.quantity * item.unit_price * rate
+            dec_rate = round(Decimal(rate), 6)
+            item_price_currency = item.quantity * item.unit_price * dec_rate
             items.append(
                 {
                     "item_no": item_no,
                     "currency": currency,
                     "text": item.text,
                     "quantity": item.quantity,
-                    "unit_price": item.unit_price * rate,
+                    "unit_price": item.unit_price * dec_rate,
                     "item_price": item_price_currency,
                     "tax": 0,
                     "item_total": item_price_currency,

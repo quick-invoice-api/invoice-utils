@@ -1,0 +1,37 @@
+[
+    {
+        "type": "header",
+        "buyer":
+        {
+            "name": "Invoiced Customer Ltd",
+            "address": "Buyer Street, 10",
+            "bank":
+            {
+                "iban": "ABC",
+                "name": "Buyer Test Bank"
+            }
+        },
+        "seller":
+        {
+            "name": "Invoicing Company Ltd",
+            "address": "Seller's Lane, Building C, Floor 1, Room 433",
+            "bank":
+            {
+                "iban": "DEF",
+                "name": "Seller Test Bank"
+            }
+        }
+    },
+    {
+        "type": "currency",
+        "main": {
+            "symbol": "EUR"
+        },
+        "secondary": [
+            {
+                "symbol": "RON",
+                "rate": 4.94
+            }
+        ]
+    }
+]

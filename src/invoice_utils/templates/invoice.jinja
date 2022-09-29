@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="description"
+          content="Invoice no. {{ header.number }} / {{ header.date | datetime_format }}">
+    <title>Invoice {{ header.number }} / {{ header.date | datetime_format }}</title>
+</head>
+<body>
+<aside>
+    <address id="from">
+        {{ header.seller.name }}
+        {{ header.seller.address }}
+    </address>
+    <address id="to">
+        {{ header.buyer.name }}
+        {{ header.buyer.address }}
+    </address>
+</aside>
+<header>
+    <h1>Invoice</h1>
+    <h2>{{ header.number }} / {{ header.date | datetime_format }}</h2>
+</header>
+<main>
+    <table>
+        <thead>
+        <tr>
+            <td>Item</td>
+            <td>Qty</td>
+            <td>Unit Price</td>
+            <td>Price</td>
+            <td>Tax</td>
+            <td>Total</td>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in by_currency %}
+            <tr>
+                <td>{{ item }}</td>
+                <td>{{ by_currency[item][0].text }}</td>
+                <td>{{ by_currency[item][0].quantity }}</td>
+                <td>
+                    {% for sub_item in by_currency[item] %}
+                        {{ sub_item.unit_price|round(2) }} {{ sub_item.currency }}<br/>
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for sub_item in by_currency[item] %}
+                        {{ sub_item.item_price|round(2) }} {{ sub_item.currency }}<br/>
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for sub_item in by_currency[item] %}
+                        {{ sub_item.tax|round(2) }} {{ sub_item.currency }}<br/>
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for sub_item in by_currency[item] %}
+                        {{ sub_item.item_total|round(2) }} {{ sub_item.currency }}<br/>
+                    {% endfor %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</main>
+<footer>
+    <dl>
+        <dd>Total Price</dd>
+        <dd>sum of item_price</dd>
+        <dd>Total Tax</dd>
+        <dd>sum of tax</dd>
+        <dd>Total</dd>
+        <dd>total price + total tax</dd>
+    </dl>
+</footer>
+</body>
+</html>
