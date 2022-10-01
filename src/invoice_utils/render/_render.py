@@ -8,7 +8,7 @@ def datetime_format(value, fmt="%Y-%m-%d"):
     return value.strftime(fmt)
 
 
-class Renderer:
+class PdfInvoiceRenderer:
     def __init__(self, template_name: str):
         self.__templates_path = Path(__file__).parent / "templates"
         self.__jinja_template = template_name + ".jinja"

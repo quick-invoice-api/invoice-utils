@@ -1,7 +1,6 @@
 import pytest
 
-from invoice_utils import InvoicingEngine
-from invoice_utils._engine import InvoicingInputError
+from invoice_utils.engine import InvoicingEngine, InvoicingInputError
 
 
 def test_invoicing_engine_with_empty_file():

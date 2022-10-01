@@ -4,24 +4,8 @@ from datetime import datetime
 from decimal import Decimal
 from json import JSONDecodeError
 
-from invoice_utils._adt import InvoicedItem
-
-
-class InvoicingInputError(Exception):
-    def __init__(self, file_name: str):
-        super().__init__(self)
-        self.__message = self._construct_message(file_name)
-
-    def _construct_message(self, file_name):
-        return f"file '{file_name}' not found"
-
-    def __str__(self):
-        return self.__message
-
-
-class InvoicingInputFormatError(InvoicingInputError):
-    def _construct_message(self, file_name):
-        return f"file '{file_name}' not does not contain valid json"
+from invoice_utils.models import InvoicedItem
+from invoice_utils.engine._errors import InvoicingInputError, InvoicingInputFormatError
 
 
 class InvoicingEngine:
@@ -43,40 +27,45 @@ class InvoicingEngine:
             "totals": {"price": 0, "total": 0, "extra": {}},
         }
 
-    def _process_item(self, item_no: int, item: InvoicedItem):
-        items = self.__invoice["items"]
-        currency_info = self.__invoice["header"]["currency"]
-        item_price = item.quantity * item.unit_price
+    def _process_item(self, item_no: int, item_tax: Decimal, item: InvoicedItem):
+        items = self.__invoice.get("items", [])
 
-        # main currency
+        currency_info = self.__invoice["header"]["currency"]
+        qty = round(Decimal(item.quantity), 6)
+        unit_price = round(Decimal(item.unit_price), 6)
+        item_price = round(qty * unit_price, 6)
+
+        extra_currencies = []
+        for currency, rate in currency_info.get("exchangeRates", {}).items():
+            dec_rate = round(Decimal(rate), 6)
+            up_currency = round(unit_price * dec_rate, 6)
+            ip_currency = round(qty * up_currency, 6)
+            it_currency = round(item_tax * dec_rate, 6)
+            extra_currencies.append(
+                {
+                    "currency": currency,
+                    "unit_price": str(up_currency),
+                    "item_price": str(ip_currency),
+                    "item_tax": str(it_currency),
+                    "item_total": str(ip_currency + it_currency),
+                }
+            )
         items.append(
             {
                 "item_no": item_no,
                 "currency": currency_info["main"],
                 "text": item.text,
-                "quantity": item.quantity,
-                "unit_price": item.unit_price,
-                "item_price": item_price,
-                "tax": 0,
-                "item_total": item_price,
+                "quantity": str(qty),
+                "unit_price": str(unit_price),
+                "item_price": str(item_price),
+                "item_tax": str(item_tax),
+                "item_total": str(item_price + item_tax),
+                "extra": {
+                    "currencies": extra_currencies
+                }
             }
         )
-
-        for currency, rate in currency_info.get("exchangeRates", {}).items():
-            dec_rate = round(Decimal(rate), 6)
-            item_price_currency = item.quantity * item.unit_price * dec_rate
-            items.append(
-                {
-                    "item_no": item_no,
-                    "currency": currency,
-                    "text": item.text,
-                    "quantity": item.quantity,
-                    "unit_price": item.unit_price * dec_rate,
-                    "item_price": item_price_currency,
-                    "tax": 0,
-                    "item_total": item_price_currency,
-                }
-            )
+        self.__invoice["items"] = items
 
     def process(
         self, invoice_no: int, invoice_date: datetime, items: list[InvoicedItem] = None
@@ -108,6 +97,7 @@ class InvoicingEngine:
                 "exchangeRates": exchange_rates,
             }
         for index, item in enumerate(items):
-            self._process_item(index + 1, item)
+            vat = round(Decimal(0.19) * Decimal(item.unit_price) * Decimal(item.quantity), 6)
+            self._process_item(index + 1, vat, item)
 
         return self.__invoice

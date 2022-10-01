@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from invoice_utils import *
+from invoice_utils.engine import *
+from invoice_utils.models import *
 
 
 def test_process_empty_input_data_outputs_base_invoice_document_structure(
@@ -71,20 +72,19 @@ def test_process_one_item_with_basic_template(input_data_resolver):
             "item_no": 1,
             "currency": "XYZ",
             "text": "test item",
-            "quantity": 2.71828182,
-            "unit_price": 3.14159265,
-            "item_price": 8.539734186340624,
-            "tax": 0,
-            "item_total": 8.539734186340624,
-        },
-        {
-            "item_no": 1,
-            "currency": "ABC",
-            "item_price": 9.820694314291718,
-            "item_total": 9.820694314291718,
-            "quantity": 2.71828182,
-            "tax": 0,
-            "text": "test item",
-            "unit_price": 3.6128315475,
-        },
+            "quantity": "2.718282",
+            "unit_price": "3.141593",
+            "item_price": "8.539736",
+            "item_tax": "1.622549",
+            "item_total": "10.162285",
+            "extra": {
+                "currencies": [{
+                    "currency": "ABC",
+                    "unit_price": "3.612832",
+                    "item_price": "9.820696",
+                    "item_tax": "1.865931",
+                    "item_total": "11.686627",
+                }]
+            }
+        }
     ]
