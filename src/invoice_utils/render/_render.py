@@ -8,6 +8,10 @@ def datetime_format(value, fmt="%Y-%m-%d"):
     return value.strftime(fmt)
 
 
+def number_format(value, fmt="%.2f"):
+    return fmt % float(value)
+
+
 class PdfInvoiceRenderer:
     def __init__(self, template_name: str):
         self.__templates_path = Path(__file__).parent / "templates"
@@ -18,6 +22,7 @@ class PdfInvoiceRenderer:
         loader = jinja2.FileSystemLoader(searchpath=self.__templates_path)
         jinja_env = jinja2.Environment(loader=loader)
         jinja_env.filters["datetime_format"] = datetime_format
+        jinja_env.filters["number_format"] = number_format
         html_template = jinja_env.get_template(self.__jinja_template)
 
         printer = weasyprint.HTML(string=html_template.render(

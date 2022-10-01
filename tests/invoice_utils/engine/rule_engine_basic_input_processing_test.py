@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 from invoice_utils.engine import *
 from invoice_utils.models import *
@@ -71,9 +72,9 @@ def test_process_one_item_computes_item_price_correctly(input_data_resolver):
     assert output["items"][0]["item_no"] == 1
     assert output["items"][0]["currency"] == "XYZ"
     assert output["items"][0]["text"] == "test item"
-    assert output["items"][0]["quantity"] == "2.718282"
-    assert output["items"][0]["unit_price"] == "3.141593"
-    assert output["items"][0]["item_price"] == "8.539736"
+    assert output["items"][0]["quantity"] == Decimal("2.718282")
+    assert output["items"][0]["unit_price"] == Decimal("3.141593")
+    assert output["items"][0]["item_price"] == Decimal("8.539736")
 
 
 def test_process_one_item_computes_extra_currencies(input_data_resolver):
@@ -88,5 +89,5 @@ def test_process_one_item_computes_extra_currencies(input_data_resolver):
 
     item_in_currency = output["items"][0]["extra"]["currencies"][0]
     assert item_in_currency["currency"] == "ABC"
-    assert item_in_currency["unit_price"] == "3.612832"
-    assert item_in_currency["item_price"] == "9.820696"
+    assert item_in_currency["unit_price"] == Decimal("3.612832")
+    assert item_in_currency["item_price"] == Decimal("9.820696")

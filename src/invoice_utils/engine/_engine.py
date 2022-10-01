@@ -44,12 +44,12 @@ class InvoicingEngine:
             if op == "*":
                 taxes.append({
                     "name": name,
-                    "value": str(round(val * item_price, 6)),
+                    "value": round(val * item_price, 6),
                 })
             elif op == "+":
                 taxes.append({
                     "name": name,
-                    "value": str(round(val + item_price, 6))
+                    "value": round(val + item_price, 6)
                 })
         item_tax = round(sum(Decimal(tax["value"]) for tax in taxes), 6)
         extra_currencies = []
@@ -61,15 +61,15 @@ class InvoicingEngine:
             for tax in taxes:
                 currency_taxes.append({
                     "name": tax["name"],
-                    "value": str(round(Decimal(tax["value"]) * dec_rate, 6)),
+                    "value": round(Decimal(tax["value"]) * dec_rate, 6),
                 })
             it_currency = round(sum(Decimal(tax["value"]) for tax in currency_taxes), 6)
             extra_currencies.append(
                 {
                     "currency": currency,
-                    "unit_price": str(up_currency),
-                    "item_price": str(ip_currency),
-                    "item_total": str(ip_currency + it_currency),
+                    "unit_price": up_currency,
+                    "item_price": ip_currency,
+                    "item_total": ip_currency + it_currency,
                     "taxes": currency_taxes
                 }
             )
@@ -79,17 +79,37 @@ class InvoicingEngine:
                 "item_no": item_no,
                 "currency": currency_info["main"],
                 "text": item.text,
-                "quantity": str(qty),
-                "unit_price": str(unit_price),
-                "item_price": str(item_price),
-                "item_total": str(item_price + item_tax),
+                "quantity": qty,
+                "unit_price": unit_price,
+                "item_price": item_price,
+                "item_total": item_price + item_tax,
+                "taxes": taxes,
                 "extra": {
                     "currencies": extra_currencies,
-                    "taxes": taxes,
                 }
             }
         )
         self.__invoice["items"] = items
+
+    def _compute_totals(self, input_items: list[dict]):
+        result = {
+            "price": sum(map(lambda i: i["item_price"], input_items)),
+            "total": sum(map(lambda i: i["item_total"], input_items)),
+        }
+        tax_totals = {}
+        for item in self.__invoice["items"]:
+            for tax in item["taxes"]:
+                current_value = Decimal(tax_totals.get(tax["name"], 0))
+                current_value += Decimal(tax["value"])
+                tax_totals[tax["name"]] = current_value
+        if tax_totals:
+            result["taxes"] = [
+                {
+                    "name": tax,
+                    "value": value,
+                } for tax, value in tax_totals.items()
+            ]
+        return result
 
     def process(
         self, invoice_no: int, invoice_date: datetime, items: list[InvoicedItem] = None
@@ -123,5 +143,7 @@ class InvoicingEngine:
         for index, item in enumerate(items):
             vat = round(Decimal(0.19) * Decimal(item.unit_price) * Decimal(item.quantity), 6)
             self._process_item(index + 1, vat, item)
+        main_currency_totals = self._compute_totals(self.__invoice["items"])
+        self.__invoice["totals"].update(main_currency_totals)
 
         return self.__invoice

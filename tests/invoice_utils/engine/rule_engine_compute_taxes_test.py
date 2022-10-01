@@ -13,12 +13,12 @@ def test_process_tax_rule(input_data_resolver):
     )
 
     assert len(output["items"]) == 1
-    assert output["items"][0]["extra"]["taxes"] == [{
+    assert output["items"][0]["taxes"] == [{
         "name": "vat",
-        "value": "2.000000"
+        "value": Decimal("2.000000")
     }]
     assert output["items"][0]["extra"]["currencies"][0]["taxes"] == [{
         "name": "vat",
-        "value": "2.300000"
+        "value": Decimal("2.300000")
     }]
-    assert output["items"][0]["item_total"] == "12.000000"
+    assert output["items"][0]["item_total"] == Decimal("12.000000")
