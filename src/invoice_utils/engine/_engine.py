@@ -35,21 +35,45 @@ class InvoicingEngine:
         unit_price = round(Decimal(item.unit_price), 6)
         item_price = round(qty * unit_price, 6)
 
+        taxes = []
+        extra_ops = [ rule for rule in self.__rules if rule.get("type") == "item_op" ]
+        for op_info in extra_ops:
+            op = op_info["operation"]
+            val = Decimal(op_info["value"])
+            name = op_info["name"]
+            if op == "*":
+                taxes.append({
+                    "name": name,
+                    "value": str(round(val * item_price, 6)),
+                })
+            elif op == "+":
+                taxes.append({
+                    "name": name,
+                    "value": str(round(val + item_price, 6))
+                })
+        item_tax = round(sum(Decimal(tax["value"]) for tax in taxes), 6)
         extra_currencies = []
         for currency, rate in currency_info.get("exchangeRates", {}).items():
             dec_rate = round(Decimal(rate), 6)
             up_currency = round(unit_price * dec_rate, 6)
             ip_currency = round(qty * up_currency, 6)
-            it_currency = round(item_tax * dec_rate, 6)
+            currency_taxes = []
+            for tax in taxes:
+                currency_taxes.append({
+                    "name": tax["name"],
+                    "value": str(round(Decimal(tax["value"]) * dec_rate, 6)),
+                })
+            it_currency = round(sum(Decimal(tax["value"]) for tax in currency_taxes), 6)
             extra_currencies.append(
                 {
                     "currency": currency,
                     "unit_price": str(up_currency),
                     "item_price": str(ip_currency),
-                    "item_tax": str(it_currency),
                     "item_total": str(ip_currency + it_currency),
+                    "taxes": currency_taxes
                 }
             )
+
         items.append(
             {
                 "item_no": item_no,
@@ -58,10 +82,10 @@ class InvoicingEngine:
                 "quantity": str(qty),
                 "unit_price": str(unit_price),
                 "item_price": str(item_price),
-                "item_tax": str(item_tax),
                 "item_total": str(item_price + item_tax),
                 "extra": {
-                    "currencies": extra_currencies
+                    "currencies": extra_currencies,
+                    "taxes": taxes,
                 }
             }
         )

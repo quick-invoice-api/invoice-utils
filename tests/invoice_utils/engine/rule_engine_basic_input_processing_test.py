@@ -60,31 +60,33 @@ def test_process_currency_rule_outputs_currency_in_invoice_header(input_data_res
     }
 
 
-def test_process_one_item_with_basic_template(input_data_resolver):
+def test_process_one_item_computes_item_price_correctly(input_data_resolver):
     item = InvoicedItem(text="test item", quantity=2.71828182, unit_price=3.14159265)
 
     output = InvoicingEngine(input_data_resolver("basic.json")).process(
         1, datetime(2022, 1, 15, 13, 14, 15), [item]
     )
 
-    assert output["items"] == [
-        {
-            "item_no": 1,
-            "currency": "XYZ",
-            "text": "test item",
-            "quantity": "2.718282",
-            "unit_price": "3.141593",
-            "item_price": "8.539736",
-            "item_tax": "1.622549",
-            "item_total": "10.162285",
-            "extra": {
-                "currencies": [{
-                    "currency": "ABC",
-                    "unit_price": "3.612832",
-                    "item_price": "9.820696",
-                    "item_tax": "1.865931",
-                    "item_total": "11.686627",
-                }]
-            }
-        }
-    ]
+    assert len(output["items"]) == 1
+    assert output["items"][0]["item_no"] == 1
+    assert output["items"][0]["currency"] == "XYZ"
+    assert output["items"][0]["text"] == "test item"
+    assert output["items"][0]["quantity"] == "2.718282"
+    assert output["items"][0]["unit_price"] == "3.141593"
+    assert output["items"][0]["item_price"] == "8.539736"
+
+
+def test_process_one_item_computes_extra_currencies(input_data_resolver):
+    item = InvoicedItem(text="test item", quantity=2.71828182, unit_price=3.14159265)
+
+    output = InvoicingEngine(input_data_resolver("basic.json")).process(
+        1, datetime(2022, 1, 15, 13, 14, 15), [item]
+    )
+
+    assert len(output["items"]) == 1
+    assert len(output["items"][0]["extra"]["currencies"]) == 1
+
+    item_in_currency = output["items"][0]["extra"]["currencies"][0]
+    assert item_in_currency["currency"] == "ABC"
+    assert item_in_currency["unit_price"] == "3.612832"
+    assert item_in_currency["item_price"] == "9.820696"
