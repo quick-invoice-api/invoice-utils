@@ -34,29 +34,33 @@
         </tr>
         </thead>
         <tbody>
-        {% for item in by_currency %}
+        {% for item in items %}
             <tr>
-                <td>{{ item }}</td>
-                <td>{{ by_currency[item][0].text }}</td>
-                <td>{{ by_currency[item][0].quantity }}</td>
+                <td>{{ item.item_no }}</td>
+                <td>{{ item.text }}</td>
+                <td>{{ item.quantity }}</td>
                 <td>
-                    {% for sub_item in by_currency[item] %}
-                        {{ sub_item.unit_price|round(2) }} {{ sub_item.currency }}<br/>
+                    {{ item.unit_price | float | round(2) }} {{ item.currency }} <br />
+                    {% for sub_item in item.extra.currencies %}
+                        {{ sub_item.unit_price | float | round(2) }} {{ sub_item.currency }}<br/>
                     {% endfor %}
                 </td>
                 <td>
-                    {% for sub_item in by_currency[item] %}
-                        {{ sub_item.item_price|round(2) }} {{ sub_item.currency }}<br/>
+                    {{ item.item_price | float | round(2) }} {{ item.currency }} <br />
+                    {% for sub_item in item.extra.currencies %}
+                        {{ sub_item.item_price | float | round(2) }} {{ sub_item.currency }}<br/>
                     {% endfor %}
                 </td>
                 <td>
-                    {% for sub_item in by_currency[item] %}
-                        {{ sub_item.tax|round(2) }} {{ sub_item.currency }}<br/>
+                    {{ item.item_tax | float | round(2) }} {{ item.currency }} <br />
+                    {% for sub_item in item.extra.currencies %}
+                        {{ sub_item.item_tax | float | round(2) }} {{ sub_item.currency }}<br/>
                     {% endfor %}
                 </td>
                 <td>
-                    {% for sub_item in by_currency[item] %}
-                        {{ sub_item.item_total|round(2) }} {{ sub_item.currency }}<br/>
+                    {{ item.item_total | float | round(2) }} {{ item.currency }} <br />
+                    {% for sub_item in item.extra.currencies %}
+                        {{ sub_item.item_total | float | round(2) }} {{ sub_item.currency }}<br/>
                     {% endfor %}
                 </td>
             </tr>
