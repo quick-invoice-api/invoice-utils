@@ -25,7 +25,8 @@
     <table>
         <thead>
         <tr>
-            <td>Item</td>
+            <td>Entry #</td>
+            <td>Invoiced Item</td>
             <td>Qty</td>
             <td>Unit Price</td>
             <td>Price</td>
@@ -38,7 +39,7 @@
             <tr>
                 <td>{{ item.item_no }}</td>
                 <td>{{ item.text }}</td>
-                <td>{{ item.quantity }}</td>
+                <td>{{ item.quantity | float | round(2) }}</td>
                 <td>
                     {{ item.unit_price | float | round(2) }} {{ item.currency }} <br />
                     {% for sub_item in item.extra.currencies %}
@@ -52,9 +53,13 @@
                     {% endfor %}
                 </td>
                 <td>
-                    {{ item.item_tax | float | round(2) }} {{ item.currency }} <br />
+                    {% for tax in item.extra.taxes %}
+                        {{ tax.name }} = {{ tax.value | float | round(2) }} {{ item.currency }} <br />
+                    {% endfor %}
                     {% for sub_item in item.extra.currencies %}
-                        {{ sub_item.item_tax | float | round(2) }} {{ sub_item.currency }}<br/>
+                        {% for tax in sub_item.taxes %}
+                            {{ tax.name }} = {{ tax.value | float | round(2) }} {{ sub_item.currency }} <br />
+                        {% endfor %}
                     {% endfor %}
                 </td>
                 <td>

@@ -33,5 +33,11 @@
                 "rate": 4.94
             }
         ]
+    },
+    {
+        "type": "item_op",
+        "name": "VAT",
+        "operation": "*",
+        "value": "0.0"
     }
 ]
