@@ -146,4 +146,19 @@ class InvoicingEngine:
         main_currency_totals = self._compute_totals(self.__invoice["items"])
         self.__invoice["totals"].update(main_currency_totals)
 
+        items_by_currency = {}
+        for item in self.__invoice["items"]:
+            extra_currencies = item["extra"]["currencies"]
+            for sub_item in extra_currencies:
+                key = sub_item["currency"]
+                same_currency_items = items_by_currency.get(key, [])
+                same_currency_items.append(sub_item)
+                items_by_currency[key] = same_currency_items
+        total_in_currencies = []
+        for currency, currency_items in items_by_currency.items():
+            currency_totals = self._compute_totals(currency_items)
+            currency_totals["currency"] = currency
+            total_in_currencies.append(currency_totals)
+        self.__invoice["totals"]["extra"]["currencies"] = total_in_currencies
+
         return self.__invoice
