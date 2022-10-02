@@ -4,7 +4,7 @@ import jinja2
 import weasyprint
 
 
-def datetime_format(value, fmt="%Y-%m-%d"):
+def datetime_format(value, fmt="%d.%m.%Y"):
     return value.strftime(fmt)
 
 

@@ -2,20 +2,24 @@ from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 
-from invoice_utils.models import InvoicedItem
 from invoice_utils.engine import InvoicingEngine
+from invoice_utils.models import InvoicedItem
 from invoice_utils.render import PdfInvoiceRenderer
 
 root_dir = Path(__file__).parent
-basic_rules = str(root_dir / "basic.json")
-out_path = str(root_dir / "out.pdf")
+investigo_rules = str(root_dir / "basic.json")
+invoiced_items = [
+    (1, datetime(2022, 10, 2),
+     [InvoicedItem(
+         text="Rendered services according to contract no. 1 from 2016",
+         quantity=Decimal("4"),
+         unit_price=Decimal("25.0")
+     )]),
+]
+engine = InvoicingEngine(str(investigo_rules))
 
-engine = InvoicingEngine(str(basic_rules))
-context = engine.process(1, datetime.now(), [
-    InvoicedItem("invoiced item #1", Decimal(20), Decimal(15)),
-    InvoicedItem("invoiced item #2", Decimal(10), Decimal(25)),
-    InvoicedItem("invoiced item #3", Decimal(5), Decimal(35)),
-])
-
-renderer = PdfInvoiceRenderer("invoice_ro-RO")
-renderer.render(context, out_path)
+for invoice in invoiced_items:
+    context = engine.process(*invoice)
+    renderer = PdfInvoiceRenderer("invoice")
+    out_path = root_dir / f"{invoice[1]:%Y%m%d}-{invoice[0]:04}-invoice.pdf"
+    renderer.render(context, str(out_path))
