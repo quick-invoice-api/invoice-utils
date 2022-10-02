@@ -97,7 +97,7 @@ class InvoicingEngine:
             "total": sum(map(lambda i: i["item_total"], input_items)),
         }
         tax_totals = {}
-        for item in self.__invoice["items"]:
+        for item in input_items:
             for tax in item["taxes"]:
                 current_value = Decimal(tax_totals.get(tax["name"], 0))
                 current_value += Decimal(tax["value"])
@@ -154,11 +154,12 @@ class InvoicingEngine:
                 same_currency_items = items_by_currency.get(key, [])
                 same_currency_items.append(sub_item)
                 items_by_currency[key] = same_currency_items
-        total_in_currencies = []
-        for currency, currency_items in items_by_currency.items():
-            currency_totals = self._compute_totals(currency_items)
-            currency_totals["currency"] = currency
-            total_in_currencies.append(currency_totals)
-        self.__invoice["totals"]["extra"]["currencies"] = total_in_currencies
+        if len(items_by_currency) > 0:
+            total_in_currencies = []
+            for currency, currency_items in items_by_currency.items():
+                currency_totals = self._compute_totals(currency_items)
+                currency_totals["currency"] = currency
+                total_in_currencies.append(currency_totals)
+            self.__invoice["totals"]["extra"]["currencies"] = total_in_currencies
 
         return self.__invoice

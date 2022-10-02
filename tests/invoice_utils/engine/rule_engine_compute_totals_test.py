@@ -19,5 +19,14 @@ def test_process_computes_totals(input_data_resolver):
     assert "taxes" in output["totals"]
     assert output["totals"]["taxes"] == [{
          "name": "vat",
-         "value": Decimal("2.000000")
+         "value": Decimal("2.0")
+    }]
+    assert "currencies" in output["totals"]["extra"]
+    assert len(output["totals"]["extra"]["currencies"]) == 1
+    assert output["totals"]["extra"]["currencies"][0]["currency"] == "ABC"
+    assert output["totals"]["extra"]["currencies"][0]["price"] == Decimal(11.5)
+    assert output["totals"]["extra"]["currencies"][0]["total"] == Decimal("13.800000")
+    assert output["totals"]["extra"]["currencies"][0]["taxes"] == [{
+         "name": "vat",
+         "value": Decimal("2.3")
     }]
