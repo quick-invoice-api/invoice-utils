@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="description"
+          content="Factura {{ header.number }} / {{ header.date | datetime_format }}">
+    <title>Factura {{ header.number }} / {{ header.date | datetime_format }}</title>
+</head>
+<body>
+<aside>
+    <address>
+        <small class="address-label">Emitent</small><br/>
+        <span class="company-name">{{ header.seller.name }}</span><br/>
+        <span>{{ header.seller.address }}</span><br/>
+    </address>
+    <address>
+        <small class="address-label">Client</small><br/>
+        <span class="company-name">{{ header.buyer.name }}</span><br/>
+        <span>{{ header.buyer.address }}</span><br/>
+    </address>
+</aside>
+<header>
+    <h1>Factură</h1>
+    <h2>{{ header.number }} / {{ header.date | datetime_format }}</h2>
+</header>
+<main>
+    <div class="items">
+        <table>
+            <thead>
+            <tr>
+                <td>Nr. crt.</td>
+                <td>Descriere</td>
+                <td>Cant.</td>
+                <td>Preț unitar</td>
+                <td>Preț</td>
+                <td>Taxe</td>
+                <td>Total linie</td>
+            </tr>
+            </thead>
+            <tbody>
+            {% for item in items %}
+                <tr>
+                    <td>{{ item.item_no }}</td>
+                    <td>{{ item.text }}</td>
+                    <td>{{ item.quantity | float | round(2) }}</td>
+                    <td>
+                        {{ item.unit_price | float | round(2) }} {{ item.currency }}
+                        {% for sub_item in item.extra.currencies %}
+                            <br/>
+                            <small class="currency">{{ sub_item.unit_price | float | round(2) }} {{ sub_item.currency }}</small>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {{ item.item_price | float | round(2) }} {{ item.currency }}
+                        {% for sub_item in item.extra.currencies %}
+                            <br/>
+                            <small class="currency">{{ sub_item.item_price | float | round(2) }} {{ sub_item.currency }}</small>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% for tax in item.taxes %}
+                            {{ tax.name }} = {{ tax.value | float | round(2) }} {{ item.currency }}
+                        {% endfor %}
+                        {% for sub_item in item.extra.currencies %}
+                            {% for tax in sub_item.taxes %}
+                                <br/><small class="currency">{{ tax.name }}
+                                = {{ tax.value | float | round(2) }} {{ sub_item.currency }}</small>
+                            {% endfor %}
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {{ item.item_total | float | round(2) }} {{ item.currency }}
+                        {% for sub_item in item.extra.currencies %}
+                            <br/>
+                            <small class="currency">{{ sub_item.item_total | float | round(2) }} {{ sub_item.currency }}</small>
+                        {% endfor %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="totals">
+        <dl class="totals">
+            <dt>Preț Total</dt>
+            <dd>
+                {{ totals.price | number_format }} {{ header.currency.main }}
+                {% for t in totals.extra.currencies %}
+                    <br/><small class="currency">{{ t.price | number_format }} {{ t.currency }}</small>
+                {% endfor %}
+            </dd>
+            <dt>Taxe</dt>
+            <dd>
+                {{ totals.extra.taxes | sum(attribute='value') | number_format }} {{ header.currency.main }}
+                {% for t in totals.extra.currencies %}
+                    <br/>
+                    <small class="currency">{{ t.taxes | sum(attribute='value') | number_format }} {{ t.currency }}</small>
+                {% endfor %}
+            </dd>
+            <dt>Total</dt>
+            <dd>
+                {{ totals.total | number_format }} {{ header.currency.main }}
+                {% for t in totals.extra.currencies %}
+                    <br/><small class="currency">{{ t.total | number_format }} {{ t.currency }}</small>
+                {% endfor %}
+            </dd>
+        </dl>
+    </div>
+</main>
+<footer>
+</footer>
+</body>
+</html>

@@ -1,0 +1,105 @@
+@import url("https://fonts.cdnfonts.com/css/goudy-bookletter-1911");
+
+@media print {
+    @page {
+        size: A4;
+        margin: 2cm;
+    }
+
+    body {
+        font-family: 'Goudy Bookletter 1911', sans-serif;
+        font-size: 12pt;
+        font-feature-settings: "liga", "clig";
+    }
+
+    aside {
+        display: flex;
+        flex-wrap: nowrap;
+        flex-direction: row;
+        align-items: stretch;
+        justify-content: space-between;
+    }
+
+    address {
+        margin: 0.5em;
+        width: 20em;
+        font-size: 8pt;
+        font-style: normal;
+    }
+
+    address > small.address-label {
+        font-size: 6pt;
+        font-style: normal;
+        text-decoration: underline;
+    }
+
+    address > span.company-name {
+        font-weight: bold;
+        font-size: 10pt;
+    }
+
+    header {
+        text-align: center;
+    }
+
+    header > h1 {
+        font-size: 24pt;
+        margin: 2cm 0 0 0;
+        padding: 0;
+    }
+
+    header > h2 {
+        font-size: 16pt;
+        margin: 0 0 1.5cm 0;
+        padding: 0;
+    }
+
+    small.currency {
+        font-size: 8pt;
+        font-style: oblique;
+        color: #3c3c3c;
+    }
+
+    main {
+        display: flex;
+        flex-direction: column;
+    }
+
+    div.items {
+        font-size: smaller;
+    }
+
+    div.items > table > thead {
+        font-weight: bold;
+        border-bottom: #3c3c3c dotted 1px;
+    }
+
+    div.items > table {
+        border-bottom: #3c3c3c double 2px;
+    }
+
+    div.totals {
+        font-weight: bold;
+        display: flex;
+        flex-direction: row-reverse;
+    }
+
+    div.totals > dl {
+        display: grid;
+        grid-template-columns: 40% auto;
+        padding: 16px;
+        min-width: 240px;
+    }
+
+    div.totals > dl > dt {
+        grid-column: 1;
+        font-weight: bold;
+    }
+    div.totals > dl > dt::after {
+        content: ':';
+    }
+
+    div.totals > dl > dd {
+        grid-column: 2;
+    }
+}

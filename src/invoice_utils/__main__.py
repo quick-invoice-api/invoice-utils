@@ -17,5 +17,5 @@ context = engine.process(1, datetime.now(), [
     InvoicedItem("invoiced item #3", Decimal(5), Decimal(35)),
 ])
 
-renderer = PdfInvoiceRenderer("invoice")
+renderer = PdfInvoiceRenderer("invoice_ro-RO")
 renderer.render(context, out_path)
