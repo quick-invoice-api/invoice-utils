@@ -11,12 +11,22 @@
     <address>
         <small class="address-label">Emitent</small><br/>
         <span class="company-name">{{ header.seller.name }}</span><br/>
+        <span class="tax-info">CIF: {{ header.seller.taxInfo.vatId }}</span><br/>
+        <span class="tax-info">Nr. Inregistrare: {{ header.seller.taxInfo.registrationNumber }}</span><br/>
         <span>{{ header.seller.address }}</span><br/>
+        <span>{{ header.seller.adminLocation }}</span><br/>
+        <span class="bank-details">{{ header.seller.bank.name }}</span><br/>
+        <span class="bank-details">{{ header.seller.bank.iban }}</span>
     </address>
     <address>
         <small class="address-label">Client</small><br/>
         <span class="company-name">{{ header.buyer.name }}</span><br/>
+        <span class="tax-info">CIF: {{ header.buyer.taxInfo.vatId }}</span><br/>
+        <span class="tax-info">Nr. Inregistrare: {{ header.buyer.taxInfo.registrationNumber }}</span><br/>
         <span>{{ header.buyer.address }}</span><br/>
+        <span>{{ header.buyer.adminLocation }}</span><br/>
+        <span class="bank-details">{{ header.buyer.bank.name }}</span><br/>
+        <span class="bank-details">{{ header.buyer.bank.iban }}</span>
     </address>
 </aside>
 <header>
