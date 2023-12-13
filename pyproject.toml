@@ -24,6 +24,7 @@ check-protected-access-in-special-methods = true
 python = "^3.10"
 weasyprint = "^56.1"
 Jinja2 = "^3.1.2"
+fastapi = "^0.105.0"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.971"
