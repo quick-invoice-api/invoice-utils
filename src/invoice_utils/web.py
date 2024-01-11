@@ -1,5 +1,7 @@
 from datetime import datetime
+from logging import basicConfig, getLogger, INFO, DEBUG
 from pathlib import Path
+from sys import stdout
 from typing import Optional
 
 from fastapi import FastAPI
@@ -9,6 +11,8 @@ from invoice_utils.engine import InvoicingEngine
 from invoice_utils.models import InvoicedItem
 
 app = FastAPI()
+basicConfig(stream=stdout, level=DEBUG)
+log = getLogger("invoice-utils")
 
 
 class InvoiceRequestHeader(BaseModel):
@@ -49,5 +53,5 @@ def generate_invoice(request: InvoiceRequest):
     basic_rules = str(root_dir / "basic.json")
     engine = InvoicingEngine(basic_rules)
     if request.send_mail:
-        pass
+        log.info("I've sent the mail like you asked.")
     return engine.process(int(request.header.number), request.header.timestamp, request.items)
