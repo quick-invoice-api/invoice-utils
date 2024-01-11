@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from invoice_utils.engine import InvoicingEngine
+from invoice_utils.models import InvoicedItem
 
 app = FastAPI()
 
@@ -36,14 +37,17 @@ class InvoiceEntity(BaseModel):
 
 class InvoiceRequest(BaseModel):
     header: InvoiceRequestHeader
+    send_mail: bool = False
     buyer: InvoiceEntity
     seller: InvoiceEntity
-    items: list
+    items: list[InvoicedItem]
 
 
-@app.post("/invoice")
+@app.post("/invoice", status_code=201)
 def generate_invoice(request: InvoiceRequest):
     root_dir = Path(__file__).parent
     basic_rules = str(root_dir / "basic.json")
     engine = InvoicingEngine(basic_rules)
+    if request.send_mail:
+        pass
     return engine.process(int(request.header.number), request.header.timestamp, request.items)
