@@ -18,18 +18,29 @@ def invoice_request_body():
     }
 
 
-def test_send_mail_param(http, caplog, invoice_request_body):
+def test_send_mail_param_not_provided(http, caplog, invoice_request_body):
     with caplog.at_level("INFO"):
         res = http.post("/invoice", json=invoice_request_body)
 
-    assert "I've sent the mail like you asked." not in caplog.messages
+    assert "Report was sent to test@email.com" not in caplog.messages
     assert res.status_code == 201
 
 
-def test_send_mail_param_is_true(http, caplog, invoice_request_body):
+def test_send_mail_param_fails_without_address_param(http, caplog, invoice_request_body):
     invoice_request_body["send_mail"] = True
     with caplog.at_level("INFO"):
         res = http.post("/invoice", json=invoice_request_body)
 
-    assert "I've sent the mail like you asked." in caplog.messages
+    assert "Report was sent to " not in caplog.messages
+    assert res.json()["message"] == "Address was not provided but send_mail is set to True."
+    assert res.status_code == 422
+
+
+def test_send_mail_param_is_true_and_address_provided(http, caplog, invoice_request_body):
+    invoice_request_body["send_mail"] = True
+    invoice_request_body["address"] = "test@email.com"
+    with caplog.at_level("INFO"):
+        res = http.post("/invoice", json=invoice_request_body)
+
+    assert "Report was sent to test@email.com" in caplog.messages
     assert res.status_code == 201
