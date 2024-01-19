@@ -15,12 +15,12 @@ from pydantic import BaseModel
 from invoice_utils.engine import InvoicingEngine
 from invoice_utils.models import InvoicedItem
 from invoice_utils.config import (
-    MAIL_HOST,
-    MAIL_PORT,
-    MAIL_LOGIN_PASSWORD,
-    MAIL_LOGIN_USER,
-    SENDER_EMAIL,
-    MAIL_SUBJECT,
+    INVOICE_UTILS_MAIL_HOST,
+    INVOICE_UTILS_MAIL_PORT,
+    INVOICE_UTILS_MAIL_LOGIN_PASSWORD,
+    INVOICE_UTILS_MAIL_LOGIN_USER,
+    INVOICE_UTILS_SENDER_EMAIL,
+    INVOICE_UTILS_MAIL_SUBJECT,
 )
 
 app = FastAPI()
@@ -95,14 +95,14 @@ def generate_invoice(request: InvoiceRequest):
                 "Address was not provided but send_mail is set to True."
             )
         message = MIMEText("Empty Body", "html")
-        message["From"] = SENDER_EMAIL
+        message["From"] = INVOICE_UTILS_SENDER_EMAIL
         message["To"] = request.address
-        message["Subject"] = MAIL_SUBJECT
+        message["Subject"] = INVOICE_UTILS_MAIL_SUBJECT
         try:
-            with smtplib.SMTP(MAIL_HOST, MAIL_PORT) as server:
+            with smtplib.SMTP(INVOICE_UTILS_MAIL_HOST, INVOICE_UTILS_MAIL_PORT) as server:
                 server.starttls()
-                server.login(MAIL_LOGIN_USER, MAIL_LOGIN_PASSWORD)
-                server.sendmail(SENDER_EMAIL, request.address, message.as_string())
+                server.login(INVOICE_UTILS_MAIL_LOGIN_USER, INVOICE_UTILS_MAIL_LOGIN_PASSWORD)
+                server.sendmail(INVOICE_UTILS_SENDER_EMAIL, request.address, message.as_string())
         except Exception as e:
             log.debug(e)
             raise InvoiceRequestEmailError("There was a problem sending the email.")
