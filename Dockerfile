@@ -1,5 +1,4 @@
 FROM python:3.11-alpine as base
-ARG POETRY_VERSION=1.7.1
 
 WORKDIR /base
 
