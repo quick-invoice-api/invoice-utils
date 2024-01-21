@@ -1,0 +1,12 @@
+.DS_Store
+.dockerignore
+.gitignore
+.git
+.github
+.idea
+.pytest_cache
+.venv
+.vscode
+
+mkdocs.yml
+docs
