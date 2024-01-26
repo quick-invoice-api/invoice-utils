@@ -1,5 +1,10 @@
 import os
 
+
+def _str_to_bool(arg: str) -> bool:
+    return arg in {"True", "1", "y", "true", "yes", "Yes", "Y"}
+
+
 DEFAULT_MAIL_HOST = "smtp.gmail.com"
 DEFAULT_PORT = 587
 DEFAULT_MAIL_SUBJECT = "Invoice generated with invoice-utils"
@@ -10,4 +15,4 @@ INVOICE_UTILS_MAIL_SUBJECT = os.getenv("INVOICE_UTILS_MAIL_SUBJECT", DEFAULT_MAI
 INVOICE_UTILS_MAIL_LOGIN_USER = os.getenv("INVOICE_UTILS_MAIL_LOGIN_USER")
 INVOICE_UTILS_MAIL_LOGIN_PASSWORD = os.getenv("INVOICE_UTILS_MAIL_LOGIN_PASSWORD")
 INVOICE_UTILS_SENDER_EMAIL = os.getenv("INVOICE_UTILS_SENDER_EMAIL")
-INVOICE_UTILS_SMTP_TLS = os.getenv("INVOICE_UTILS_SMTP_TLS")
+INVOICE_UTILS_SMTP_TLS = _str_to_bool(os.getenv("INVOICE_UTILS_SMTP_TLS"))

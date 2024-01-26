@@ -170,9 +170,13 @@ def test_smtp_login_when_user_and_password_are_specified(
 @pytest.mark.parametrize(
     "environment",
     [
-        {
-            "INVOICE_UTILS_SMTP_TLS": True,
-        },
+        {"INVOICE_UTILS_SMTP_TLS": True},
+        {"INVOICE_UTILS_SMTP_TLS": 1},
+        {"INVOICE_UTILS_SMTP_TLS": "true"},
+        {"INVOICE_UTILS_SMTP_TLS": "y"},
+        {"INVOICE_UTILS_SMTP_TLS": "yes"},
+        {"INVOICE_UTILS_SMTP_TLS": "Yes"},
+        {"INVOICE_UTILS_SMTP_TLS": "Y"},
     ],
     indirect=["environment"]
 )
@@ -180,3 +184,18 @@ def test_smtp_starttls_called_when_env_flag_is_set(environment, http, server, em
     http.post("/invoice", json=email_invoice_request_body)
 
     assert server.starttls.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "environment",
+    [
+        {"INVOICE_UTILS_SMTP_TLS": False},
+        {"INVOICE_UTILS_SMTP_TLS": 0},
+        {"INVOICE_UTILS_SMTP_TLS": []},
+    ],
+    indirect=["environment"]
+)
+def test_smtp_starttls_env_flag_must_be_true_boolean(environment, http, server, email_invoice_request_body):
+    http.post("/invoice", json=email_invoice_request_body)
+
+    assert server.starttls.call_count == 0
