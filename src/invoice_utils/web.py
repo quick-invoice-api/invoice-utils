@@ -98,6 +98,8 @@ def _send_mail(request):
     message = _create_message(request)
     try:
         with smtplib.SMTP(config.INVOICE_UTILS_MAIL_HOST, config.INVOICE_UTILS_MAIL_PORT) as server:
+            if config.INVOICE_UTILS_SMTP_TLS:
+                server.starttls()
             if config.INVOICE_UTILS_MAIL_LOGIN_USER is not None and config.INVOICE_UTILS_MAIL_LOGIN_PASSWORD is not None:
                 server.login(config.INVOICE_UTILS_MAIL_LOGIN_USER, config.INVOICE_UTILS_MAIL_LOGIN_PASSWORD)
             server.sendmail(config.INVOICE_UTILS_SENDER_EMAIL, request.address, message.as_string())

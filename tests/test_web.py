@@ -105,15 +105,16 @@ def test_send_mail_param_fails_without_address_param(
     assert res.status_code == 422
 
 
-def test_send_mail_param_is_true_and_address_provided(
-        http, caplog, email_invoice_request_body, mock_smtp
+def test_send_mail_alternate_flow(
+    http, caplog, email_invoice_request_body, server
 ):
     with caplog.at_level("INFO"):
         res = http.post("/invoice", json=email_invoice_request_body)
 
+    assert server.starttls.call_count == 0
+    assert server.login.call_count == 0
+    assert server.sendmail.call_count == 1
     assert "Report was sent to test@email.com" in caplog.messages
-    # Because it's used as a context manager.
-    assert mock_smtp.return_value.__enter__.return_value.sendmail.call_count == 1
     assert res.status_code == 201
 
 
@@ -166,7 +167,16 @@ def test_smtp_login_when_user_and_password_are_specified(
     assert server.login.call_args_list == [call("user", "password")]
 
 
-def test_smtp_login_not_called_by_default(http, server, email_invoice_request_body):
+@pytest.mark.parametrize(
+    "environment",
+    [
+        {
+            "INVOICE_UTILS_SMTP_TLS": True,
+        },
+    ],
+    indirect=["environment"]
+)
+def test_smtp_starttls_called_when_env_flag_is_set(environment, http, server, email_invoice_request_body):
     http.post("/invoice", json=email_invoice_request_body)
 
-    assert server.login.call_count == 0
+    assert server.starttls.call_count == 1
