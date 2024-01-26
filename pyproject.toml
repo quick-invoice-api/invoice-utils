@@ -8,6 +8,10 @@ packages = [
     { include = "invoice_utils", from = "src" }
 ]
 
+[tool.poetry.group.dev.dependencies]
+httpx = "^0.26.0"
+pytest-mock = "^3.12.0"
+
 [tool.pylint.main]
 py-version = [3, 10]
 ignore-paths = ["tests"]
@@ -26,6 +30,7 @@ weasyprint = "^56.1"
 Jinja2 = "^3.1.2"
 fastapi = "^0.105.0"
 uvicorn = "^0.24.0.post1"
+python-dotenv = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.971"
