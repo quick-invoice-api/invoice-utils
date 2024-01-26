@@ -1,9 +1,7 @@
-import os
-import re
 import smtplib
 from email.mime.text import MIMEText
 from importlib import reload
-from unittest.mock import MagicMock, call, ANY
+from unittest.mock import MagicMock, call, ANY, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -19,6 +17,12 @@ def environment(monkeypatch, request):
         env = request.param
     else:
         env = {}
+    invoice_utils_env_vars = [
+        "INVOICE_UTILS_MAIL_LOGIN_USER",
+        "INVOICE_UTILS_MAIL_LOGIN_PASSWORD"
+    ]
+    for k in invoice_utils_env_vars:
+        monkeypatch.delenv(k, raising=False)
     for k, v in env.items():
         monkeypatch.setenv(k, v)
     from invoice_utils import config
@@ -27,9 +31,10 @@ def environment(monkeypatch, request):
 
 
 @pytest.fixture()
-def http(environment):
-    import invoice_utils.web as web
-    return TestClient(web.app)
+def http(environment, monkeypatch):
+    with patch("dotenv.load_dotenv", MagicMock(name="load_dotenv")):
+        import invoice_utils.web as web
+        return TestClient(web.app)
 
 
 @pytest.fixture()
@@ -47,7 +52,7 @@ def invoice_request_body():
 
 
 @pytest.fixture
-def email_invoice_request_body(invoice_request_body):
+def email_invoice_request_body(invoice_request_body: dict):
     invoice_request_body["send_mail"] = True
     invoice_request_body["address"] = "test@email.com"
     return invoice_request_body
@@ -61,9 +66,9 @@ def mock_smtp(mocker):
 
 
 @pytest.fixture
-def sendmail(mock_smtp):
-    result = MagicMock(name="sendmail")
-    mock_smtp.return_value.__enter__.return_value.sendmail = result
+def server(mock_smtp):
+    result = MagicMock(name="SMTPServer")
+    mock_smtp.return_value.__enter__.return_value = result
     return result
 
 
@@ -86,7 +91,7 @@ def test_send_mail_param_not_provided(http, caplog, invoice_request_body):
 
 
 def test_send_mail_param_fails_without_address_param(
-    http, caplog, invoice_request_body
+        http, caplog, invoice_request_body: dict
 ):
     invoice_request_body["send_mail"] = True
     with caplog.at_level("INFO"):
@@ -94,14 +99,14 @@ def test_send_mail_param_fails_without_address_param(
 
     assert "Report was sent to " not in caplog.messages
     assert (
-        res.json()["message"]
-        == "Address was not provided but send_mail is set to True."
+            res.json()["message"]
+            == "Address was not provided but send_mail is set to True."
     )
     assert res.status_code == 422
 
 
 def test_send_mail_param_is_true_and_address_provided(
-    http, caplog, email_invoice_request_body, mock_smtp
+        http, caplog, email_invoice_request_body, mock_smtp
 ):
     with caplog.at_level("INFO"):
         res = http.post("/invoice", json=email_invoice_request_body)
@@ -132,12 +137,37 @@ def test_send_mail_fails_for_smtp_exception(http, caplog, email_invoice_request_
     indirect=["environment"]
 )
 def test_email_sent_with_expected_subject(
-    environment, http, sendmail, email_invoice_request_body, expected_subject,
+        environment, http, server, email_invoice_request_body, expected_subject,
 ):
     http.post("/invoice", json=email_invoice_request_body)
 
-    assert sendmail.call_args_list == [
+    assert server.sendmail.call_args_list == [
         call(ANY, ANY, ANY)
     ]
-    email_content = sendmail.call_args.args[2]
+    email_content = server.sendmail.call_args.args[2]
     assert f"Subject: {expected_subject}" in email_content
+
+
+@pytest.mark.parametrize(
+    "environment, expected_user, expected_password",
+    [
+        (
+                {
+                    "INVOICE_UTILS_MAIL_LOGIN_USER": "user",
+                    "INVOICE_UTILS_MAIL_LOGIN_PASSWORD": "password"
+                },
+                "user",
+                "password"
+        ),
+        ({}, None, None),
+    ],
+    indirect=["environment"]
+)
+def test_smtp_login(
+    environment, http, server, email_invoice_request_body, expected_user, expected_password,
+):
+    http.post("/invoice", json=email_invoice_request_body)
+
+    assert server.login.call_args_list == [
+        call(expected_user, expected_password)
+    ]

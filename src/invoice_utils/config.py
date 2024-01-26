@@ -1,7 +1,4 @@
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 DEFAULT_MAIL_HOST = "smtp.gmail.com"
 DEFAULT_PORT = 587

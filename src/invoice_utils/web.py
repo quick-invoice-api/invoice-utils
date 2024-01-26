@@ -1,5 +1,6 @@
 import smtplib
 from datetime import datetime
+from dotenv import load_dotenv
 from logging import basicConfig, getLogger, DEBUG
 from pathlib import Path
 from sys import stdout
@@ -15,6 +16,7 @@ from invoice_utils.models import InvoicedItem
 import invoice_utils.config as config
 
 app = FastAPI()
+load_dotenv()
 basicConfig(stream=stdout, level=DEBUG)
 log = getLogger("invoice-utils")
 
@@ -96,6 +98,7 @@ def _send_mail(request):
     message = _create_message(request)
     try:
         with smtplib.SMTP(config.INVOICE_UTILS_MAIL_HOST, config.INVOICE_UTILS_MAIL_PORT) as server:
+            server.login(config.INVOICE_UTILS_MAIL_LOGIN_USER, config.INVOICE_UTILS_MAIL_LOGIN_PASSWORD)
             server.sendmail(config.INVOICE_UTILS_SENDER_EMAIL, request.address, message.as_string())
         log.info("Report was sent to %s", request.address)
     except Exception as e:
