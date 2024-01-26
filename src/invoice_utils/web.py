@@ -1,27 +1,18 @@
 import smtplib
 from datetime import datetime
-from logging import basicConfig, getLogger, INFO, DEBUG
+from logging import basicConfig, getLogger, DEBUG
 from pathlib import Path
 from sys import stdout
 from typing import Optional
 from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from invoice_utils.engine import InvoicingEngine
 from invoice_utils.models import InvoicedItem
-from invoice_utils.config import (
-    INVOICE_UTILS_MAIL_HOST,
-    INVOICE_UTILS_MAIL_PORT,
-    INVOICE_UTILS_MAIL_LOGIN_PASSWORD,
-    INVOICE_UTILS_MAIL_LOGIN_USER,
-    INVOICE_UTILS_SENDER_EMAIL,
-    INVOICE_UTILS_MAIL_SUBJECT,
-)
+import invoice_utils.config as config
 
 app = FastAPI()
 basicConfig(stream=stdout, level=DEBUG)
@@ -89,25 +80,31 @@ def generate_invoice(request: InvoiceRequest):
     root_dir = Path(__file__).parent
     basic_rules = str(root_dir / "basic.json")
     engine = InvoicingEngine(basic_rules)
-    if request.send_mail:
-        if not request.address:
-            raise InvoiceRequestInputError(
-                "Address was not provided but send_mail is set to True."
-            )
-        message = MIMEText("Empty Body", "html")
-        message["From"] = INVOICE_UTILS_SENDER_EMAIL
-        message["To"] = request.address
-        message["Subject"] = INVOICE_UTILS_MAIL_SUBJECT
-        try:
-            with smtplib.SMTP(INVOICE_UTILS_MAIL_HOST, INVOICE_UTILS_MAIL_PORT) as server:
-                server.starttls()
-                server.login(INVOICE_UTILS_MAIL_LOGIN_USER, INVOICE_UTILS_MAIL_LOGIN_PASSWORD)
-                server.sendmail(INVOICE_UTILS_SENDER_EMAIL, request.address, message.as_string())
-        except Exception as e:
-            log.debug(e)
-            raise InvoiceRequestEmailError("There was a problem sending the email.")
-
-        log.info("Report was sent to {}".format(request.address))
+    _send_mail(request)
     return engine.process(
         int(request.header.number), request.header.timestamp, request.items
     )
+
+
+def _send_mail(request):
+    if not request.send_mail:
+        return
+    if not request.address:
+        raise InvoiceRequestInputError(
+            "Address was not provided but send_mail is set to True."
+        )
+    message = _create_message(request)
+    try:
+        with smtplib.SMTP(config.INVOICE_UTILS_MAIL_HOST, config.INVOICE_UTILS_MAIL_PORT) as server:
+            server.sendmail(config.INVOICE_UTILS_SENDER_EMAIL, request.address, message.as_string())
+        log.info("Report was sent to %s", request.address)
+    except Exception as e:
+        raise InvoiceRequestEmailError("There was a problem sending the email.") from e
+
+
+def _create_message(request):
+    message = MIMEText("Empty Body", "html")
+    message["From"] = config.INVOICE_UTILS_SENDER_EMAIL
+    message["To"] = request.address
+    message["Subject"] = config.INVOICE_UTILS_MAIL_SUBJECT
+    return message
