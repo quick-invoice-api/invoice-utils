@@ -149,25 +149,24 @@ def test_email_sent_with_expected_subject(
 
 
 @pytest.mark.parametrize(
-    "environment, expected_user, expected_password",
+    "environment",
     [
-        (
-                {
-                    "INVOICE_UTILS_MAIL_LOGIN_USER": "user",
-                    "INVOICE_UTILS_MAIL_LOGIN_PASSWORD": "password"
-                },
-                "user",
-                "password"
-        ),
-        ({}, None, None),
+        {
+            "INVOICE_UTILS_MAIL_LOGIN_USER": "user",
+            "INVOICE_UTILS_MAIL_LOGIN_PASSWORD": "password"
+        },
     ],
     indirect=["environment"]
 )
-def test_smtp_login(
-    environment, http, server, email_invoice_request_body, expected_user, expected_password,
+def test_smtp_login_when_user_and_password_are_specified(
+    environment, http, server, email_invoice_request_body,
 ):
     http.post("/invoice", json=email_invoice_request_body)
 
-    assert server.login.call_args_list == [
-        call(expected_user, expected_password)
-    ]
+    assert server.login.call_args_list == [call("user", "password")]
+
+
+def test_smtp_login_not_called_by_default(http, server, email_invoice_request_body):
+    http.post("/invoice", json=email_invoice_request_body)
+
+    assert server.login.call_count == 0
