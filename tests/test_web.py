@@ -199,3 +199,20 @@ def test_smtp_starttls_env_flag_must_be_true_boolean(environment, http, server, 
     http.post("/invoice", json=email_invoice_request_body)
 
     assert server.starttls.call_count == 0
+
+
+@pytest.mark.parametrize(
+    "environment, expected_body",
+    [({"INVOICE_UTILS_MAIL_SUBJECT": "test subject"}, "test body")],
+    indirect=["environment"]
+)
+def test_email_body_was_sent_with_expected_body(
+        environment, http, server, email_invoice_request_body, expected_body,
+):
+    http.post("/invoice", json=email_invoice_request_body)
+
+    assert server.sendmail.call_args_list == [
+        call(ANY, ANY, ANY)
+    ]
+    email_content = server.sendmail.call_args.args[2]
+    assert expected_body in email_content

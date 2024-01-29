@@ -109,7 +109,7 @@ def _send_mail(request):
 
 
 def _create_message(request):
-    message = MIMEText("Empty Body", "html")
+    message = MIMEText("test body", "html")
     message["From"] = config.INVOICE_UTILS_SENDER_EMAIL
     message["To"] = request.address
     message["Subject"] = config.INVOICE_UTILS_MAIL_SUBJECT
