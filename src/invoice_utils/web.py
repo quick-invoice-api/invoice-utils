@@ -1,5 +1,9 @@
 import smtplib
 from datetime import datetime
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from os.path import basename
+
 from dotenv import load_dotenv
 from logging import basicConfig, getLogger, DEBUG
 from pathlib import Path
@@ -14,10 +18,12 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 
 from invoice_utils.engine import InvoicingEngine
 from invoice_utils.models import InvoicedItem
+load_dotenv() # Need to do this now for it to work.
 import invoice_utils.config as config
+from invoice_utils.render import PdfInvoiceRenderer
 
 app = FastAPI()
-load_dotenv()
+# load_dotenv()
 basicConfig(stream=stdout, level=DEBUG)
 log = getLogger("invoice-utils")
 
@@ -83,20 +89,24 @@ def generate_invoice(request: InvoiceRequest):
     root_dir = Path(__file__).parent
     basic_rules = str(root_dir / "basic.json")
     engine = InvoicingEngine(basic_rules)
-    _send_mail(request)
-    return engine.process(
+    context = engine.process(
         int(request.header.number), request.header.timestamp, request.items
     )
+    renderer = PdfInvoiceRenderer("invoice")
+    invoice_path = root_dir / f"{request.header.timestamp:%Y%m%d}-{int(request.header.number):04}-invoice.pdf"
+    renderer.render(context, str(invoice_path))
+    _send_mail(request, invoice_path)
+    return context
 
 
-def _send_mail(request):
+def _send_mail(request, invoice_path):
     if not request.send_mail:
         return
     if not request.address:
         raise InvoiceRequestInputError(
             "Address was not provided but send_mail is set to True."
         )
-    message = _create_message(request)
+    message = _create_message(request, invoice_path)
     try:
         with smtplib.SMTP(config.INVOICE_UTILS_MAIL_HOST, config.INVOICE_UTILS_MAIL_PORT) as server:
             if config.INVOICE_UTILS_SMTP_TLS:
@@ -109,7 +119,25 @@ def _send_mail(request):
         raise InvoiceRequestEmailError("There was a problem sending the email.") from e
 
 
-def _create_message(request):
+def _create_message(request, invoice_path):
+    html_body = _render_body_template(request)
+    message = MIMEMultipart()
+    part = MIMEText(html_body, "html")
+    message.attach(part)
+    message["From"] = config.INVOICE_UTILS_SENDER_EMAIL
+    message["To"] = request.address
+    message["Subject"] = config.INVOICE_UTILS_MAIL_SUBJECT
+    with open(invoice_path, "rb") as fil:
+        file_part = MIMEApplication(
+            fil.read(),
+            Name=basename(invoice_path)
+        )
+    file_part['Content-Disposition'] = 'attachment; filename="%s"' % basename(invoice_path)
+    message.attach(file_part)
+    return message
+
+
+def _render_body_template(request):
     env = Environment(
         loader=PackageLoader('invoice_utils', 'email_templates'),
         autoescape=select_autoescape(['html', 'xml'])
@@ -120,8 +148,4 @@ def _create_message(request):
         invoice_id=request.header.number,
         sender_name=request.seller.name
     )
-    message = MIMEText(html_body, "html")
-    message["From"] = config.INVOICE_UTILS_SENDER_EMAIL
-    message["To"] = request.address
-    message["Subject"] = config.INVOICE_UTILS_MAIL_SUBJECT
-    return message
+    return html_body

@@ -1,4 +1,5 @@
 import smtplib
+from datetime import datetime
 from email.mime.text import MIMEText
 from importlib import reload
 from unittest.mock import MagicMock, call, ANY, patch
@@ -71,16 +72,6 @@ def server(mock_smtp):
     result = MagicMock(name="SMTPServer")
     mock_smtp.return_value.__enter__.return_value = result
     return result
-
-
-@pytest.fixture()
-def email_body():
-    body = "test body"
-    message = MIMEText(body, "html")
-    # message["From"] = INVOICE_UTILS_SENDER_EMAIL
-    # message["To"] = "test@email.com"
-    # message["Subject"] = INVOICE_UTILS_MAIL_SUBJECT
-    return message.as_string()
 
 
 def test_send_mail_param_not_provided(http, caplog, invoice_request_body):
@@ -241,5 +232,31 @@ def test_email_body_was_sent_with_expected_body(
     assert server.sendmail.call_args_list == [
         call(ANY, ANY, ANY)
     ]
-    email_content = server.sendmail.call_args.args[2]
+    email_content = server.sendmail.call_args.args[MESSAGE_ARGUMENT]
     assert expected_body in email_content
+
+
+@pytest.mark.parametrize(
+    "environment",
+    [
+        (
+            {
+                "INVOICE_UTILS_MAIL_SUBJECT": "test subject",
+                "INVOICE_UTILS_BODY_TEMPLATE_PATH": "test_template.html",
+                "INVOICE_UTILS_SENDER_EMAIL": "test@email.com"
+            }
+        )
+    ],
+    indirect=["environment"]
+)
+def test_sendmail_was_called_with_pdf_attachment(environment, http, server, email_invoice_request_body):
+    http.post("/invoice", json=email_invoice_request_body)
+    timestamp = datetime.fromisoformat(email_invoice_request_body['header']['timestamp'])
+    invoice_number = int(email_invoice_request_body['header']['number'])
+    invoice_name = f"{timestamp:%Y%m%d}-{invoice_number:04}-invoice.pdf"
+
+    assert server.sendmail.call_args_list == [
+        call(ANY, ANY, ANY)
+    ]
+    email_content = server.sendmail.call_args.args[MESSAGE_ARGUMENT]
+    assert f"Content-Disposition: attachment; filename=\"{invoice_name}\"" in email_content
