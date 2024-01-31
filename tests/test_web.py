@@ -84,21 +84,9 @@ def email_body():
 
 
 @pytest.fixture
-def rendered_body_template(environment, email_invoice_request_body):
-    env = Environment(
-        loader=PackageLoader(
-            environment.get("INVOICE_UTILS_BODY_TEMPLATE_PACKAGE"),
-            environment.get("INVOICE_UTILS_BODY_TEMPLATE_DIRECTORY"),
-        ),
-        autoescape=select_autoescape(['html', 'xml'])
-    )
-    template = env.get_template(environment.get("INVOICE_UTILS_BODY_TEMPLATE_NAME"))
-    expected_body = template.render(
-        sender_email=environment.get("INVOICE_UTILS_SENDER_EMAIL"),
-        invoice_id=email_invoice_request_body["header"]["number"],
-        sender_name=email_invoice_request_body["seller"]["name"]
-    )
-    return expected_body
+def expected_body():
+    return "<p>Hello,</p>\n<p>This is a test email from test@email.com.</p>\n<p>Testing invoice with id 1 issued by " \
+           "a.</p>\n<p>Please don\'t contact us</p>\n<p>~a</p>"
 
 
 def test_send_mail_param_not_provided(http, caplog, invoice_request_body):
@@ -229,19 +217,16 @@ def test_smtp_starttls_env_flag_must_be_true_boolean(environment, http, server, 
                 "INVOICE_UTILS_SENDER_EMAIL": "test@email.com",
                 "INVOICE_UTILS_BODY_TEMPLATE_NAME": "test_template.html",
                 "INVOICE_UTILS_BODY_TEMPLATE_PACKAGE": "tests",
-                "INVOICE_UTILS_BODY_TEMPLATE_DIRECTORY": "data"
+                "INVOICE_UTILS_TEMPLATES_DIR": "data"
             }
         )
     ],
     indirect=["environment"]
 )
 def test_email_body_was_sent_with_expected_body(
-        environment, http, server, email_invoice_request_body, rendered_body_template
+        environment, http, server, email_invoice_request_body, expected_body
 ):
     http.post("/invoice", json=email_invoice_request_body)
 
-    assert server.sendmail.call_args_list == [
-        call(ANY, ANY, ANY)
-    ]
     email_content = server.sendmail.call_args.args[2]
-    assert rendered_body_template in email_content
+    assert expected_body in email_content

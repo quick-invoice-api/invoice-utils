@@ -111,7 +111,7 @@ def _send_mail(request):
 
 def _create_message(request):
     env = Environment(
-        loader=PackageLoader(config.INVOICE_UTILS_BODY_TEMPLATE_PACKAGE, config.INVOICE_UTILS_BODY_TEMPLATE_DIRECTORY),
+        loader=PackageLoader(config.INVOICE_UTILS_BODY_TEMPLATE_PACKAGE, config.INVOICE_UTILS_TEMPLATES_DIR),
         autoescape=select_autoescape(['html', 'xml'])
     )
     template = env.get_template(config.INVOICE_UTILS_BODY_TEMPLATE_NAME)
