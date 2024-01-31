@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from invoice_utils.config import DEFAULT_MAIL_SUBJECT, DEFAULT_BODY_TEMPLATE_PATH
+from invoice_utils.config import DEFAULT_MAIL_SUBJECT, DEFAULT_BODY_TEMPLATE_NAME
 
 MESSAGE_ARGUMENT = 2
 
@@ -81,6 +81,24 @@ def email_body():
     # message["To"] = "test@email.com"
     # message["Subject"] = INVOICE_UTILS_MAIL_SUBJECT
     return message.as_string()
+
+
+@pytest.fixture
+def rendered_body_template(environment, email_invoice_request_body):
+    env = Environment(
+        loader=PackageLoader(
+            environment.get("INVOICE_UTILS_BODY_TEMPLATE_PACKAGE"),
+            environment.get("INVOICE_UTILS_BODY_TEMPLATE_DIRECTORY"),
+        ),
+        autoescape=select_autoescape(['html', 'xml'])
+    )
+    template = env.get_template(environment.get("INVOICE_UTILS_BODY_TEMPLATE_NAME"))
+    expected_body = template.render(
+        sender_email=environment.get("INVOICE_UTILS_SENDER_EMAIL"),
+        invoice_id=email_invoice_request_body["header"]["number"],
+        sender_name=email_invoice_request_body["seller"]["name"]
+    )
+    return expected_body
 
 
 def test_send_mail_param_not_provided(http, caplog, invoice_request_body):
@@ -208,38 +226,22 @@ def test_smtp_starttls_env_flag_must_be_true_boolean(environment, http, server, 
         (
             {
                 "INVOICE_UTILS_MAIL_SUBJECT": "test subject",
-                "INVOICE_UTILS_BODY_TEMPLATE_PATH": "test_template.html",
-                "INVOICE_UTILS_SENDER_EMAIL": "test@email.com"
-            }
-        ),
-        (
-            {
-                "INVOICE_UTILS_MAIL_SUBJECT": "test subject",
-                "INVOICE_UTILS_BODY_TEMPLATE_PATH": DEFAULT_BODY_TEMPLATE_PATH,
-                "INVOICE_UTILS_SENDER_EMAIL": "test@email.com"
+                "INVOICE_UTILS_SENDER_EMAIL": "test@email.com",
+                "INVOICE_UTILS_BODY_TEMPLATE_NAME": "test_template.html",
+                "INVOICE_UTILS_BODY_TEMPLATE_PACKAGE": "tests",
+                "INVOICE_UTILS_BODY_TEMPLATE_DIRECTORY": "data"
             }
         )
     ],
     indirect=["environment"]
 )
 def test_email_body_was_sent_with_expected_body(
-        environment, http, server, email_invoice_request_body
+        environment, http, server, email_invoice_request_body, rendered_body_template
 ):
     http.post("/invoice", json=email_invoice_request_body)
-
-    env = Environment(
-        loader=PackageLoader('invoice_utils', 'email_templates'),
-        autoescape=select_autoescape(['html', 'xml'])
-    )
-    template = env.get_template(environment.get("INVOICE_UTILS_BODY_TEMPLATE_PATH"))
-    expected_body = template.render(
-        sender_email=environment.get("INVOICE_UTILS_SENDER_EMAIL"),
-        invoice_id=email_invoice_request_body["header"]["number"],
-        sender_name=email_invoice_request_body["seller"]["name"]
-    )
 
     assert server.sendmail.call_args_list == [
         call(ANY, ANY, ANY)
     ]
     email_content = server.sendmail.call_args.args[2]
-    assert expected_body in email_content
+    assert rendered_body_template in email_content
