@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, call, ANY, patch
 
 import pytest
 from fastapi.testclient import TestClient
-from jinja2 import Environment, PackageLoader, select_autoescape
 
-from invoice_utils.config import DEFAULT_MAIL_SUBJECT, DEFAULT_BODY_TEMPLATE_NAME
+from invoice_utils.config import DEFAULT_MAIL_SUBJECT, DEFAULT_BODY_TEMPLATE_NAME, DEFAULT_BODY_TEMPLATE_PACKAGE, \
+    DEFAULT_BODY_TEMPLATE_DIRECTORY
 
 MESSAGE_ARGUMENT = 2
 
@@ -230,3 +230,16 @@ def test_email_body_was_sent_with_expected_body(
 
     email_content = server.sendmail.call_args.args[2]
     assert expected_body in email_content
+
+
+def test_render_body_is_called_with_default_values(
+    http, server, email_invoice_request_body, mocker
+):
+    mock_env = mocker.MagicMock(name="invoice_utils.web.Environment")
+    mocker.patch("invoice_utils.web.Environment", new=mock_env)
+
+    http.post("/invoice", json=email_invoice_request_body)
+
+    assert mock_env.call_args.kwargs["loader"].package_name == DEFAULT_BODY_TEMPLATE_PACKAGE
+    assert mock_env.call_args.kwargs["loader"].package_path == DEFAULT_BODY_TEMPLATE_DIRECTORY
+    assert DEFAULT_BODY_TEMPLATE_NAME in mock_env.return_value.get_template.call_args.args
