@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, call, ANY, patch
 
 import pytest
 from fastapi.testclient import TestClient
+from jinja2 import TemplateNotFound
 
 from invoice_utils.config import DEFAULT_MAIL_SUBJECT, DEFAULT_BODY_TEMPLATE_NAME, DEFAULT_BODY_TEMPLATE_PACKAGE, \
     DEFAULT_BODY_TEMPLATE_DIRECTORY
@@ -243,3 +244,19 @@ def test_render_body_is_called_with_default_values(
     assert mock_env.call_args.kwargs["loader"].package_name == DEFAULT_BODY_TEMPLATE_PACKAGE
     assert mock_env.call_args.kwargs["loader"].package_path == DEFAULT_BODY_TEMPLATE_DIRECTORY
     assert DEFAULT_BODY_TEMPLATE_NAME in mock_env.return_value.get_template.call_args.args
+
+
+@pytest.mark.parametrize(
+    "environment, expected_error",
+    [
+        ({"INVOICE_UTILS_BODY_TEMPLATE_NAME": "bad_template.html"}, TemplateNotFound),
+        ({"INVOICE_UTILS_BODY_TEMPLATE_PACKAGE": "bad_package"}, ModuleNotFoundError),
+        ({"INVOICE_UTILS_TEMPLATES_DIR": "bad_dir"}, ValueError)
+    ],
+    indirect=["environment"]
+)
+def test_template_related_variables_with_bad_inputs_raise_errors(
+        environment, http, server, email_invoice_request_body, expected_error
+):
+    with pytest.raises(expected_error):
+        http.post("/invoice", json=email_invoice_request_body)
