@@ -5,8 +5,10 @@ from unittest.mock import MagicMock, call, ANY, patch
 
 import pytest
 from fastapi.testclient import TestClient
+from jinja2 import TemplateNotFound
 
-from invoice_utils.config import DEFAULT_MAIL_SUBJECT
+from invoice_utils.config import DEFAULT_MAIL_SUBJECT, DEFAULT_BODY_TEMPLATE_NAME, DEFAULT_BODY_TEMPLATE_PACKAGE, \
+    DEFAULT_BODY_TEMPLATE_DIRECTORY
 
 MESSAGE_ARGUMENT = 2
 
@@ -80,6 +82,12 @@ def email_body():
     # message["To"] = "test@email.com"
     # message["Subject"] = INVOICE_UTILS_MAIL_SUBJECT
     return message.as_string()
+
+
+@pytest.fixture
+def expected_body():
+    return "<p>Hello,</p>\n<p>This is a test email from test@email.com.</p>\n<p>Testing invoice with id 1 issued by " \
+           "a.</p>\n<p>Please don\'t contact us</p>\n<p>~a</p>"
 
 
 def test_send_mail_param_not_provided(http, caplog, invoice_request_body):
@@ -199,3 +207,56 @@ def test_smtp_starttls_env_flag_must_be_true_boolean(environment, http, server, 
     http.post("/invoice", json=email_invoice_request_body)
 
     assert server.starttls.call_count == 0
+
+
+@pytest.mark.parametrize(
+    "environment",
+    [
+        (
+            {
+                "INVOICE_UTILS_MAIL_SUBJECT": "test subject",
+                "INVOICE_UTILS_SENDER_EMAIL": "test@email.com",
+                "INVOICE_UTILS_BODY_TEMPLATE_NAME": "test_template.html",
+                "INVOICE_UTILS_BODY_TEMPLATE_PACKAGE": "tests",
+                "INVOICE_UTILS_TEMPLATES_DIR": "data"
+            }
+        )
+    ],
+    indirect=["environment"]
+)
+def test_email_body_was_sent_with_expected_body(
+        environment, http, server, email_invoice_request_body, expected_body
+):
+    http.post("/invoice", json=email_invoice_request_body)
+
+    email_content = server.sendmail.call_args.args[2]
+    assert expected_body in email_content
+
+
+def test_render_body_is_called_with_default_values(
+    http, server, email_invoice_request_body, mocker
+):
+    mock_env = mocker.MagicMock(name="invoice_utils.web.Environment")
+    mocker.patch("invoice_utils.web.Environment", new=mock_env)
+
+    http.post("/invoice", json=email_invoice_request_body)
+
+    assert mock_env.call_args.kwargs["loader"].package_name == DEFAULT_BODY_TEMPLATE_PACKAGE
+    assert mock_env.call_args.kwargs["loader"].package_path == DEFAULT_BODY_TEMPLATE_DIRECTORY
+    assert DEFAULT_BODY_TEMPLATE_NAME in mock_env.return_value.get_template.call_args.args
+
+
+@pytest.mark.parametrize(
+    "environment, expected_error",
+    [
+        ({"INVOICE_UTILS_BODY_TEMPLATE_NAME": "bad_template.html"}, TemplateNotFound),
+        ({"INVOICE_UTILS_BODY_TEMPLATE_PACKAGE": "bad_package"}, ModuleNotFoundError),
+        ({"INVOICE_UTILS_TEMPLATES_DIR": "bad_dir"}, ValueError)
+    ],
+    indirect=["environment"]
+)
+def test_template_related_variables_with_bad_inputs_raise_errors(
+        environment, http, server, email_invoice_request_body, expected_error
+):
+    with pytest.raises(expected_error):
+        http.post("/invoice", json=email_invoice_request_body)

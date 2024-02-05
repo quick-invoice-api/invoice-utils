@@ -10,6 +10,7 @@ from email.mime.text import MIMEText
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from jinja2 import Environment, PackageLoader, select_autoescape
 
 from invoice_utils.engine import InvoicingEngine
 from invoice_utils.models import InvoicedItem
@@ -109,7 +110,17 @@ def _send_mail(request):
 
 
 def _create_message(request):
-    message = MIMEText("Empty Body", "html")
+    env = Environment(
+        loader=PackageLoader(config.INVOICE_UTILS_BODY_TEMPLATE_PACKAGE, config.INVOICE_UTILS_TEMPLATES_DIR),
+        autoescape=select_autoescape(['html', 'xml'])
+    )
+    template = env.get_template(config.INVOICE_UTILS_BODY_TEMPLATE_NAME)
+    html_body = template.render(
+        sender_email=config.INVOICE_UTILS_SENDER_EMAIL,
+        invoice_id=request.header.number,
+        sender_name=request.seller.name
+    )
+    message = MIMEText(html_body, "html")
     message["From"] = config.INVOICE_UTILS_SENDER_EMAIL
     message["To"] = request.address
     message["Subject"] = config.INVOICE_UTILS_MAIL_SUBJECT
