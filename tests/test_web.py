@@ -293,6 +293,30 @@ def test_invoice_generation_fails_if_directory_does_not_exist(
     assert res.json() == {"detail": "Invoices directory not set up."}
 
 
+@pytest.mark.parametrize(
+    "environment",
+    [
+        (
+            {
+                "INVOICE_UTILS_MAIL_SUBJECT": "test subject",
+                "INVOICE_UTILS_BODY_TEMPLATE_PATH": "test_template.html",
+                "INVOICE_UTILS_SENDER_EMAIL": "test@email.com",
+                "INVOICE_UTILS_INVOICE_DIR": "bad_directory"
+            }
+        )
+    ],
+    indirect=["environment"]
+)
+def test_invoice_generation_fails_if_directory_does_not_exist(
+    environment, http, server, mocker, email_invoice_request_body
+):
+    with mocker.patch("invoice_utils.web.os.path.isdir", return_value=True):
+        with mocker.patch("invoice_utils.web.os.access", return_value=False):
+            res = http.post("/invoice", json=email_invoice_request_body)
+    assert res.status_code == 507
+    assert res.json() == {"detail": "Invoices directory does not have write access."}
+
+
 def test_render_body_is_called_with_default_values(
     http, server, email_invoice_request_body, mocker
 ):

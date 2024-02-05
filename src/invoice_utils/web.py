@@ -98,6 +98,8 @@ def generate_invoice(request: InvoiceRequest):
     invoice_path = root_dir / config.INVOICE_UTILS_INVOICE_DIR / invoice_name
     if not os.path.isdir(root_dir / config.INVOICE_UTILS_INVOICE_DIR):
         raise HTTPException(status_code=507, detail="Invoices directory not set up.")
+    if not os.access(root_dir / config.INVOICE_UTILS_INVOICE_DIR, os.W_OK):
+        raise HTTPException(status_code=507, detail="Invoices directory does not have write access.")
     renderer.render(context, str(invoice_path))
     _send_mail(request, invoice_path)
     return context
