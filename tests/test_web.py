@@ -261,7 +261,7 @@ def test_sendmail_was_called_with_pdf_attachment(environment, http, server, emai
     indirect=["environment"]
 )
 def test_invoice_generated_within_specified_dir(
-        environment, http, server, mocker, email_invoice_request_body
+    environment, http, server, mocker, email_invoice_request_body
 ):
     mock_render = mocker.MagicMock(name="invoice_utils.web.PdfInvoiceRenderer.render")
     mocker.patch("invoice_utils.web.PdfInvoiceRenderer.render", new=mock_render)
@@ -269,6 +269,31 @@ def test_invoice_generated_within_specified_dir(
     http.post("/invoice", json=email_invoice_request_body)
 
     assert environment.get("INVOICE_UTILS_INVOICE_DIR") in mock_render.call_args.args[1]
+
+
+@pytest.mark.parametrize(
+    "environment",
+    [
+        (
+            {
+                "INVOICE_UTILS_MAIL_SUBJECT": "test subject",
+                "INVOICE_UTILS_BODY_TEMPLATE_PATH": "test_template.html",
+                "INVOICE_UTILS_SENDER_EMAIL": "test@email.com",
+                "INVOICE_UTILS_INVOICE_DIR": "bad_directory"
+            }
+        )
+    ],
+    indirect=["environment"]
+)
+def test_invoice_generation_fails_if_directory_does_not_exist(
+    environment, http, server, mocker, email_invoice_request_body
+):
+    mock_render = mocker.MagicMock(name="invoice_utils.web.PdfInvoiceRenderer.render")
+    mocker.patch("invoice_utils.web.PdfInvoiceRenderer.render", new=mock_render)
+
+    res = http.post("/invoice", json=email_invoice_request_body)
+    assert res.status_code == 507
+    assert res.json() == {"detail": "Invoices directory not set up."}
 
 
 def test_render_body_is_called_with_default_values(
