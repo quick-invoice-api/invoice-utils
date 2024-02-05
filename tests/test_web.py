@@ -80,7 +80,15 @@ def expected_body():
            "a.</p>\n<p>Please don\'t contact us</p>\n<p>~a</p>"
 
 
-def test_send_mail_param_not_provided(http, caplog, invoice_request_body):
+@pytest.fixture
+def mock_render(mocker):
+    result = MagicMock(name="invoice_utils.web.PdfInvoiceRenderer.render")
+    mocker.patch("invoice_utils.web.PdfInvoiceRenderer.render", new=result)
+    result.return_value = b"test pdf content"
+    return result
+
+
+def test_send_mail_param_not_provided(http, caplog, mock_render, invoice_request_body):
     with caplog.at_level("INFO"):
         res = http.post("/invoice", json=invoice_request_body)
 
@@ -89,7 +97,7 @@ def test_send_mail_param_not_provided(http, caplog, invoice_request_body):
 
 
 def test_send_mail_param_fails_without_address_param(
-        http, caplog, invoice_request_body: dict
+    http, caplog, mock_render, invoice_request_body: dict
 ):
     invoice_request_body["send_mail"] = True
     with caplog.at_level("INFO"):
@@ -104,7 +112,7 @@ def test_send_mail_param_fails_without_address_param(
 
 
 def test_send_mail_alternate_flow(
-    http, caplog, email_invoice_request_body, server
+    http, caplog, mock_render, email_invoice_request_body, server
 ):
     with caplog.at_level("INFO"):
         res = http.post("/invoice", json=email_invoice_request_body)
@@ -116,7 +124,7 @@ def test_send_mail_alternate_flow(
     assert res.status_code == 201
 
 
-def test_send_mail_fails_for_smtp_exception(http, caplog, email_invoice_request_body, mock_smtp):
+def test_send_mail_fails_for_smtp_exception(http, caplog, mock_render, email_invoice_request_body, mock_smtp):
     mock_smtp.side_effect = smtplib.SMTPException
 
     with caplog.at_level("INFO"):
@@ -136,7 +144,7 @@ def test_send_mail_fails_for_smtp_exception(http, caplog, email_invoice_request_
     indirect=["environment"]
 )
 def test_email_sent_with_expected_subject(
-        environment, http, server, email_invoice_request_body, expected_subject,
+    environment, http, server, mock_render, email_invoice_request_body, expected_subject,
 ):
     http.post("/invoice", json=email_invoice_request_body)
 
@@ -158,7 +166,7 @@ def test_email_sent_with_expected_subject(
     indirect=["environment"]
 )
 def test_smtp_login_when_user_and_password_are_specified(
-    environment, http, server, email_invoice_request_body,
+    environment, http, server, mock_render, email_invoice_request_body,
 ):
     http.post("/invoice", json=email_invoice_request_body)
 
@@ -178,7 +186,9 @@ def test_smtp_login_when_user_and_password_are_specified(
     ],
     indirect=["environment"]
 )
-def test_smtp_starttls_called_when_env_flag_is_set(environment, http, server, email_invoice_request_body):
+def test_smtp_starttls_called_when_env_flag_is_set(
+    environment, http, server, mock_render, email_invoice_request_body
+):
     http.post("/invoice", json=email_invoice_request_body)
 
     assert server.starttls.call_count == 1
@@ -193,7 +203,9 @@ def test_smtp_starttls_called_when_env_flag_is_set(environment, http, server, em
     ],
     indirect=["environment"]
 )
-def test_smtp_starttls_env_flag_must_be_true_boolean(environment, http, server, email_invoice_request_body):
+def test_smtp_starttls_env_flag_must_be_true_boolean(
+    environment, http, server, mock_render, email_invoice_request_body
+):
     http.post("/invoice", json=email_invoice_request_body)
 
     assert server.starttls.call_count == 0
@@ -215,7 +227,7 @@ def test_smtp_starttls_env_flag_must_be_true_boolean(environment, http, server, 
     indirect=["environment"]
 )
 def test_email_body_was_sent_with_expected_body(
-        environment, http, server, email_invoice_request_body, expected_body
+    environment, http, server, mock_render, email_invoice_request_body, expected_body
 ):
     http.post("/invoice", json=email_invoice_request_body)
 
@@ -236,7 +248,9 @@ def test_email_body_was_sent_with_expected_body(
     ],
     indirect=["environment"]
 )
-def test_sendmail_was_called_with_pdf_attachment(environment, http, server, email_invoice_request_body):
+def test_sendmail_was_called_with_pdf_attachment(
+    environment, http, server, mock_render, email_invoice_request_body
+):
     http.post("/invoice", json=email_invoice_request_body)
     timestamp = datetime.fromisoformat(email_invoice_request_body['header']['timestamp'])
     invoice_number = int(email_invoice_request_body['header']['number'])
@@ -261,11 +275,8 @@ def test_sendmail_was_called_with_pdf_attachment(environment, http, server, emai
     indirect=["environment"]
 )
 def test_invoice_generated_within_specified_dir(
-    environment, http, server, mocker, email_invoice_request_body
+    environment, http, server, mock_render, email_invoice_request_body
 ):
-    mock_render = mocker.MagicMock(name="invoice_utils.web.PdfInvoiceRenderer.render")
-    mocker.patch("invoice_utils.web.PdfInvoiceRenderer.render", new=mock_render)
-
     http.post("/invoice", json=email_invoice_request_body)
 
     assert environment.get("INVOICE_UTILS_INVOICE_DIR") in mock_render.call_args.args[1]
@@ -286,7 +297,7 @@ def test_invoice_generated_within_specified_dir(
     indirect=["environment"]
 )
 def test_invoice_generation_fails_if_directory_does_not_exist(
-    environment, http, server, email_invoice_request_body
+    environment, http, server, mock_render, email_invoice_request_body
 ):
     res = http.post("/invoice", json=email_invoice_request_body)
     assert res.status_code == 507
@@ -318,7 +329,7 @@ def test_invoice_generation_fails_if_directory_does_not_exist(
 
 
 def test_render_body_is_called_with_default_values(
-    http, server, email_invoice_request_body, mocker
+    http, server, mock_render, email_invoice_request_body, mocker
 ):
     mock_env = mocker.MagicMock(name="invoice_utils.web.Environment")
     mocker.patch("invoice_utils.web.Environment", new=mock_env)
@@ -340,7 +351,7 @@ def test_render_body_is_called_with_default_values(
     indirect=["environment"]
 )
 def test_template_related_variables_with_bad_inputs_raise_errors(
-        environment, http, server, email_invoice_request_body, expected_error
+    environment, http, server, mock_render, email_invoice_request_body, expected_error
 ):
     with pytest.raises(expected_error):
         http.post("/invoice", json=email_invoice_request_body)
