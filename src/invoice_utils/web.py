@@ -19,7 +19,7 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 
 from invoice_utils.engine import InvoicingEngine
 from invoice_utils.models import InvoicedItem
-load_dotenv() # Need to do this now for it to work.
+load_dotenv()  # Need to do this now for it to work.
 import invoice_utils.config as config
 from invoice_utils.render import PdfInvoiceRenderer
 
@@ -93,6 +93,12 @@ def generate_invoice(request: InvoiceRequest):
     context = engine.process(
         int(request.header.number), request.header.timestamp, request.items
     )
+    invoice_content, invoice_path = _render_invoice(context, request, root_dir)
+    _send_mail(request, invoice_content, invoice_path)
+    return context
+
+
+def _render_invoice(context, request, root_dir):
     renderer = PdfInvoiceRenderer("invoice")
     invoice_name = f"{request.header.timestamp:%Y%m%d}-{int(request.header.number):04}-invoice.pdf"
     invoice_path = root_dir / config.INVOICE_UTILS_INVOICE_DIR / invoice_name
@@ -100,19 +106,18 @@ def generate_invoice(request: InvoiceRequest):
         raise HTTPException(status_code=507, detail="Invoices directory not set up.")
     if not os.access(root_dir / config.INVOICE_UTILS_INVOICE_DIR, os.W_OK):
         raise HTTPException(status_code=507, detail="Invoices directory does not have write access.")
-    renderer.render(context, str(invoice_path))
-    _send_mail(request, invoice_path)
-    return context
+    invoice_content = renderer.render(context, str(invoice_path))
+    return invoice_content, invoice_path
 
 
-def _send_mail(request, invoice_path):
+def _send_mail(request, invoice_content, invoice_path):
     if not request.send_mail:
         return
     if not request.address:
         raise InvoiceRequestInputError(
             "Address was not provided but send_mail is set to True."
         )
-    message = _create_message(request, invoice_path)
+    message = _create_message(request, invoice_content, invoice_path)
     try:
         with smtplib.SMTP(config.INVOICE_UTILS_MAIL_HOST, config.INVOICE_UTILS_MAIL_PORT) as server:
             if config.INVOICE_UTILS_SMTP_TLS:
@@ -125,7 +130,7 @@ def _send_mail(request, invoice_path):
         raise InvoiceRequestEmailError("There was a problem sending the email.") from e
 
 
-def _create_message(request, invoice_path):
+def _create_message(request, invoice_content, invoice_path):
     html_body = _render_body_template(request)
     message = MIMEMultipart()
     part = MIMEText(html_body, "html")
@@ -133,11 +138,10 @@ def _create_message(request, invoice_path):
     message["From"] = config.INVOICE_UTILS_SENDER_EMAIL
     message["To"] = request.address
     message["Subject"] = config.INVOICE_UTILS_MAIL_SUBJECT
-    with open(invoice_path, "rb") as fil:
-        file_part = MIMEApplication(
-            fil.read(),
-            Name=basename(invoice_path)
-        )
+    file_part = MIMEApplication(
+        invoice_content,
+        Name=basename(invoice_path)
+    )
     file_part['Content-Disposition'] = 'attachment; filename="%s"' % basename(invoice_path)
     message.attach(file_part)
     return message
