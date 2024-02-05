@@ -11,7 +11,7 @@ from sys import stdout
 from typing import Optional
 from email.mime.text import MIMEText
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from jinja2 import Environment, PackageLoader, select_autoescape
@@ -93,7 +93,8 @@ def generate_invoice(request: InvoiceRequest):
         int(request.header.number), request.header.timestamp, request.items
     )
     renderer = PdfInvoiceRenderer("invoice")
-    invoice_path = root_dir / f"{request.header.timestamp:%Y%m%d}-{int(request.header.number):04}-invoice.pdf"
+    invoice_name = f"{request.header.timestamp:%Y%m%d}-{int(request.header.number):04}-invoice.pdf"
+    invoice_path = root_dir / config.INVOICE_UTILS_INVOICE_DIR / invoice_name
     renderer.render(context, str(invoice_path))
     _send_mail(request, invoice_path)
     return context

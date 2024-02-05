@@ -1,6 +1,5 @@
 import smtplib
 from datetime import datetime
-from email.mime.text import MIMEText
 from importlib import reload
 from unittest.mock import MagicMock, call, ANY, patch
 
@@ -9,7 +8,7 @@ from fastapi.testclient import TestClient
 from jinja2 import TemplateNotFound
 
 from invoice_utils.config import DEFAULT_MAIL_SUBJECT, DEFAULT_BODY_TEMPLATE_NAME, DEFAULT_BODY_TEMPLATE_PACKAGE, \
-    DEFAULT_BODY_TEMPLATE_DIRECTORY
+    DEFAULT_BODY_TEMPLATE_DIRECTORY, DEFAULT_INVOICE_DIR
 
 MESSAGE_ARGUMENT = 2
 
@@ -245,6 +244,31 @@ def test_sendmail_was_called_with_pdf_attachment(environment, http, server, emai
 
     email_content = server.sendmail.call_args.args[MESSAGE_ARGUMENT]
     assert f"Content-Disposition: attachment; filename=\"{invoice_name}\"" in email_content
+
+
+@pytest.mark.parametrize(
+    "environment",
+    [
+        (
+            {
+                "INVOICE_UTILS_MAIL_SUBJECT": "test subject",
+                "INVOICE_UTILS_BODY_TEMPLATE_PATH": "test_template.html",
+                "INVOICE_UTILS_SENDER_EMAIL": "test@email.com",
+                "INVOICE_UTILS_INVOICE_DIR": DEFAULT_INVOICE_DIR
+            }
+        )
+    ],
+    indirect=["environment"]
+)
+def test_invoice_generated_within_specified_dir(
+        environment, http, server, mocker, email_invoice_request_body
+):
+    mock_render = mocker.MagicMock(name="invoice_utils.web.PdfInvoiceRenderer.render")
+    mocker.patch("invoice_utils.web.PdfInvoiceRenderer.render", new=mock_render)
+
+    http.post("/invoice", json=email_invoice_request_body)
+
+    assert environment.get("INVOICE_UTILS_INVOICE_DIR") in mock_render.call_args.args[1]
 
 
 def test_render_body_is_called_with_default_values(
