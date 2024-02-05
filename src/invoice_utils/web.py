@@ -139,10 +139,10 @@ def _create_message(request, invoice_path):
 
 def _render_body_template(request):
     env = Environment(
-        loader=PackageLoader('invoice_utils', 'email_templates'),
+        loader=PackageLoader(config.INVOICE_UTILS_BODY_TEMPLATE_PACKAGE, config.INVOICE_UTILS_TEMPLATES_DIR),
         autoescape=select_autoescape(['html', 'xml'])
     )
-    template = env.get_template(config.INVOICE_UTILS_BODY_TEMPLATE_PATH)
+    template = env.get_template(config.INVOICE_UTILS_BODY_TEMPLATE_NAME)
     html_body = template.render(
         sender_email=config.INVOICE_UTILS_SENDER_EMAIL,
         invoice_id=request.header.number,
