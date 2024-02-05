@@ -1,3 +1,4 @@
+import os.path
 import smtplib
 from datetime import datetime
 from email.mime.application import MIMEApplication
@@ -95,6 +96,8 @@ def generate_invoice(request: InvoiceRequest):
     renderer = PdfInvoiceRenderer("invoice")
     invoice_name = f"{request.header.timestamp:%Y%m%d}-{int(request.header.number):04}-invoice.pdf"
     invoice_path = root_dir / config.INVOICE_UTILS_INVOICE_DIR / invoice_name
+    if not os.path.isdir(root_dir / config.INVOICE_UTILS_INVOICE_DIR):
+        raise HTTPException(status_code=507, detail="Invoices directory not set up.")
     renderer.render(context, str(invoice_path))
     _send_mail(request, invoice_path)
     return context
