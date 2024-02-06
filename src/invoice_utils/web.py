@@ -103,9 +103,9 @@ def _render_invoice(context, request, root_dir):
     invoice_name = f"{request.header.timestamp:%Y%m%d}-{int(request.header.number):04}-invoice.pdf"
     invoice_path = root_dir / config.INVOICE_UTILS_INVOICE_DIR / invoice_name
     if not os.path.isdir(root_dir / config.INVOICE_UTILS_INVOICE_DIR):
-        raise HTTPException(status_code=507, detail="Invoices directory not set up.")
+        raise HTTPException(status_code=507, detail="No local storage available for invoices")
     if not os.access(root_dir / config.INVOICE_UTILS_INVOICE_DIR, os.W_OK):
-        raise HTTPException(status_code=507, detail="Invoices directory does not have write access.")
+        raise HTTPException(status_code=507, detail="Insufficient rights to store invoice")
     invoice_content = renderer.render(context, str(invoice_path))
     return invoice_content, invoice_path
 

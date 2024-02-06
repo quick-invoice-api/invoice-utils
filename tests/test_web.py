@@ -252,12 +252,9 @@ def test_sendmail_was_called_with_pdf_attachment(
     environment, http, server, mock_render, email_invoice_request_body
 ):
     http.post("/invoice", json=email_invoice_request_body)
-    timestamp = datetime.fromisoformat(email_invoice_request_body['header']['timestamp'])
-    invoice_number = int(email_invoice_request_body['header']['number'])
-    invoice_name = f"{timestamp:%Y%m%d}-{invoice_number:04}-invoice.pdf"
 
     email_content = server.sendmail.call_args.args[MESSAGE_ARGUMENT]
-    assert f"Content-Disposition: attachment; filename=\"{invoice_name}\"" in email_content
+    assert "Content-Disposition: attachment; filename=\"20231114-0001-invoice.pdf\"" in email_content
 
 
 @pytest.mark.parametrize(
@@ -301,7 +298,7 @@ def test_invoice_generation_fails_if_directory_does_not_exist(
 ):
     res = http.post("/invoice", json=email_invoice_request_body)
     assert res.status_code == 507
-    assert res.json() == {"detail": "Invoices directory not set up."}
+    assert res.json() == {"detail": "No local storage available for invoices"}
 
 
 @pytest.mark.parametrize(
@@ -325,7 +322,7 @@ def test_invoice_generation_fails_if_directory_does_not_exist(
         with mocker.patch("invoice_utils.web.os.access", return_value=False):
             res = http.post("/invoice", json=email_invoice_request_body)
     assert res.status_code == 507
-    assert res.json() == {"detail": "Invoices directory does not have write access."}
+    assert res.json() == {"detail": "Insufficient rights to store invoice"}
 
 
 def test_render_body_is_called_with_default_values(
