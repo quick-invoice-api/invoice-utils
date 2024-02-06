@@ -1,5 +1,10 @@
+import os.path
 import smtplib
 from datetime import datetime
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from os.path import basename
+
 from dotenv import load_dotenv
 from logging import basicConfig, getLogger, DEBUG
 from pathlib import Path
@@ -7,17 +12,19 @@ from sys import stdout
 from typing import Optional
 from email.mime.text import MIMEText
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from invoice_utils.engine import InvoicingEngine
 from invoice_utils.models import InvoicedItem
+load_dotenv()  # Need to do this now for it to work.
 import invoice_utils.config as config
+from invoice_utils.render import PdfInvoiceRenderer
 
 app = FastAPI()
-load_dotenv()
+# load_dotenv()
 basicConfig(stream=stdout, level=DEBUG)
 log = getLogger("invoice-utils")
 
@@ -83,20 +90,34 @@ def generate_invoice(request: InvoiceRequest):
     root_dir = Path(__file__).parent
     basic_rules = str(root_dir / "basic.json")
     engine = InvoicingEngine(basic_rules)
-    _send_mail(request)
-    return engine.process(
+    context = engine.process(
         int(request.header.number), request.header.timestamp, request.items
     )
+    invoice_content, invoice_path = _render_invoice(context, request, root_dir)
+    _send_mail(request, invoice_content, invoice_path)
+    return context
 
 
-def _send_mail(request):
+def _render_invoice(context, request, root_dir):
+    renderer = PdfInvoiceRenderer("invoice")
+    invoice_name = f"{request.header.timestamp:%Y%m%d}-{int(request.header.number):04}-invoice.pdf"
+    invoice_path = root_dir / config.INVOICE_UTILS_INVOICE_DIR / invoice_name
+    if not os.path.isdir(root_dir / config.INVOICE_UTILS_INVOICE_DIR):
+        raise HTTPException(status_code=507, detail="No local storage available for invoices")
+    if not os.access(root_dir / config.INVOICE_UTILS_INVOICE_DIR, os.W_OK):
+        raise HTTPException(status_code=507, detail="Insufficient rights to store invoice")
+    invoice_content = renderer.render(context, str(invoice_path))
+    return invoice_content, invoice_path
+
+
+def _send_mail(request, invoice_content, invoice_path):
     if not request.send_mail:
         return
     if not request.address:
         raise InvoiceRequestInputError(
             "Address was not provided but send_mail is set to True."
         )
-    message = _create_message(request)
+    message = _create_message(request, invoice_content, invoice_path)
     try:
         with smtplib.SMTP(config.INVOICE_UTILS_MAIL_HOST, config.INVOICE_UTILS_MAIL_PORT) as server:
             if config.INVOICE_UTILS_SMTP_TLS:
@@ -109,7 +130,24 @@ def _send_mail(request):
         raise InvoiceRequestEmailError("There was a problem sending the email.") from e
 
 
-def _create_message(request):
+def _create_message(request, invoice_content, invoice_path):
+    html_body = _render_body_template(request)
+    message = MIMEMultipart()
+    part = MIMEText(html_body, "html")
+    message.attach(part)
+    message["From"] = config.INVOICE_UTILS_SENDER_EMAIL
+    message["To"] = request.address
+    message["Subject"] = config.INVOICE_UTILS_MAIL_SUBJECT
+    file_part = MIMEApplication(
+        invoice_content,
+        Name=basename(invoice_path)
+    )
+    file_part['Content-Disposition'] = 'attachment; filename="%s"' % basename(invoice_path)
+    message.attach(file_part)
+    return message
+
+
+def _render_body_template(request):
     env = Environment(
         loader=PackageLoader(config.INVOICE_UTILS_BODY_TEMPLATE_PACKAGE, config.INVOICE_UTILS_TEMPLATES_DIR),
         autoescape=select_autoescape(['html', 'xml'])
@@ -120,8 +158,4 @@ def _create_message(request):
         invoice_id=request.header.number,
         sender_name=request.seller.name
     )
-    message = MIMEText(html_body, "html")
-    message["From"] = config.INVOICE_UTILS_SENDER_EMAIL
-    message["To"] = request.address
-    message["Subject"] = config.INVOICE_UTILS_MAIL_SUBJECT
-    return message
+    return html_body
