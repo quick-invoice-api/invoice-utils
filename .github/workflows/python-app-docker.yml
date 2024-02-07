@@ -1,0 +1,13 @@
+name: invoice-utils 
+
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs:
+      using: 'docker'
+      image: 'Dockerfile'
