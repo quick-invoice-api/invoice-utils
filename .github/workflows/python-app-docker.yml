@@ -5,6 +5,12 @@ on: push
 permissions:
   contents: read
 
-runs:
-  using: 'docker'
-  image: 'Dockerfile'
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    container: 
+      image: 'Dockerfile'
+    steps:
+      - name: Run tests
+        run: docker build --target test -t test .
