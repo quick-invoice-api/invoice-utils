@@ -9,8 +9,17 @@ permissions:
 jobs:
   run-tests:
     runs-on: ubuntu-latest
-    container: 
-      image: 'Dockerfile'
+
+    services:
+      image: docker:20.10.11
+      options: --privileged
+
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build docker image
+        run: docker build -t invoice-utils -f Dockerfile .
+
       - name: Run tests
-        run: docker build --target test -t test .
+        run: docker run --rm invoice-utils test
