@@ -12,7 +12,6 @@ jobs:
 
     services:
       image: docker:20.10.11
-      options: --privileged
 
     steps:
       - name: Checkout code
