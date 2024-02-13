@@ -8,7 +8,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Use local run-tests-action
-        uses: ../.github/actions/run-tests-action
+        uses: ./
         with:
           stage: 'test'
 
