@@ -32,6 +32,8 @@ ENTRYPOINT python -m uvicorn invoice_utils.web:app --host '0.0.0.0' --port ${POR
 FROM python:3.11-alpine
 ARG BUILD_PKGS="build-base zlib-dev jpeg-dev libffi-dev"
 
+WORKDIR "/opt/invoice-utils"
+
 COPY --from=base /base/requirements.dev.txt .
 
 RUN apk add --no-cache bash curl $BUILD_PKGS &&\
@@ -41,7 +43,8 @@ RUN apk add --no-cache bash curl $BUILD_PKGS &&\
 
 COPY . .
 
-ENV PYTHONPATH=$WORKDIR:$PYTHONPATH
+ENV PYTHONPATH="/opt/invoice-utils/src:$PYTHONPATH"
 
-ENTRYPOINT ["python", "-m", "pytest", "tests/"]
+ENTRYPOINT ["/bin/bash", "-c" ]
+CMD ["cd /opt/invoice-utils && python -m pytest --rootdir /opt/invoice-utils tests/"]
 

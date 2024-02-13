@@ -7,4 +7,4 @@ jobs:
     steps:
       - name: tests
         id: tests
-        uses: quick-invoice-api/invoice-utils@v2-action
+        uses: quick-invoice-api/invoice-utils@v3-action
