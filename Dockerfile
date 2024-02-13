@@ -42,6 +42,7 @@ RUN apk add --no-cache bash curl $BUILD_PKGS &&\
     apk del $BUILD_PKGS
 
 COPY src/ .
+COPY entrypoint.sh entrypoint.sh
 
 EXPOSE $PORT
-ENTRYPOINT python -m uvicorn invoice_utils.web:app --host '0.0.0.0' --port ${PORT}
+ENTRYPOINT ["./entrypoint.sh"]

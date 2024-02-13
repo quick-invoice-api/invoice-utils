@@ -1,0 +1,13 @@
+name: 'Run tests in container'
+
+inputs:
+  stage:
+    description: 'Runs tests instead of server in the last stage if present'
+    required: true
+    default: 'test'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.stage }}

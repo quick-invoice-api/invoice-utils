@@ -1,0 +1,14 @@
+on: push
+
+jobs:
+  run-unit-tests-container:
+    runs-on: ubuntu-latest
+    name: Unit Tests Job
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use local run-tests-action
+        uses: ./.github/actions/run-tests-action
+        with:
+          stage: 'test'
+
