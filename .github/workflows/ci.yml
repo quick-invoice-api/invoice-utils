@@ -1,0 +1,10 @@
+on: [push]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    name: continuous integration
+    steps:
+      - name: tests
+        id: tests
+        uses: quick-invoice-api/invoice-utils@v1
