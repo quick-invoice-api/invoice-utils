@@ -43,6 +43,7 @@ RUN apk add --no-cache bash curl $BUILD_PKGS &&\
 
 COPY src/ .
 COPY entrypoint.sh entrypoint.sh
+RUN chmod +x entrypoint.sh
 
 EXPOSE $PORT
 ENTRYPOINT ["./entrypoint.sh"]
