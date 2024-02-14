@@ -1,14 +1,24 @@
 FROM python:3.11-alpine as base
+ARG WORKDIR=/opt/invoice-utils
 
-WORKDIR /base
+WORKDIR $WORKDIR
+
+RUN apk add --no-cache bash curl poetry
 
 COPY poetry.lock poetry.lock
+COPY poetry.toml poetry.toml
 COPY pyproject.toml pyproject.toml
 
-RUN apk add --no-cache poetry &&\
-    poetry export --only main --format requirements.txt --output requirements.txt --without-hashes --with-credentials &&\
-    poetry export --with dev --format requirements.txt --output requirements.dev.txt --without-hashes --with-credentials &&\
-    apk del poetry
+FROM base as test
+ARG BUILD_PKGS="build-base zlib-dev jpeg-dev libffi-dev python3-dev"
+
+RUN apk add --no-cache $BUILD_PKGS &&\
+    poetry install --no-root &&\
+    apk del $BUILD_PKGS
+
+COPY . .
+
+RUN poetry install
 
 FROM python:3.11-alpine as runtime
 ARG BUILD_PKGS="build-base zlib-dev jpeg-dev libffi-dev"
@@ -28,23 +38,3 @@ COPY src/ .
 
 EXPOSE $PORT
 ENTRYPOINT python -m uvicorn invoice_utils.web:app --host '0.0.0.0' --port ${PORT}
-
-FROM python:3.11-alpine
-ARG BUILD_PKGS="build-base zlib-dev jpeg-dev libffi-dev"
-
-WORKDIR "/opt/invoice-utils"
-
-COPY --from=base /base/requirements.dev.txt .
-
-RUN apk add --no-cache bash curl $BUILD_PKGS &&\
-    pip install --upgrade pip wheel setuptools &&\
-    pip install -r requirements.dev.txt &&\
-    apk del $BUILD_PKGS
-
-COPY . .
-
-ENV PYTHONPATH="/opt/invoice-utils/src:$PYTHONPATH"
-
-ENTRYPOINT ["/bin/bash", "-c" ]
-CMD ["cd /opt/invoice-utils && python -m pytest --rootdir /opt/invoice-utils tests/"]
-
