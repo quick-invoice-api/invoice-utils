@@ -2,6 +2,7 @@ on: [pull_request]
 
 env:
   TEST_TAG: invoice-utils:test
+  WORKSPACE: /opt/invoice-utils
 jobs:
   continuous-integration:
     runs-on: ubuntu-latest
@@ -20,8 +21,20 @@ jobs:
           push: false
           load: true
           tags: ${{ env.TEST_TAG }}
+          target: test
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Test
-        run: |
-          docker run --rm ${{ env.TEST_TAG }}
+      - name: Run Tests
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ${{ env.TEST_TAG }}
+          options: --rm -v ${{ github.workspace }}/dist:${{env.WORKSPACE}}/dist
+          run: poetry run pytest --junit-xml ./dist/test-results.xml tests/
+      - name: Record Test Results
+        if: always()
+        uses: pmeier/pytest-results-action@main
+        with:
+          path: ./dist/test-results.xml
+          summary: true
+          fail-on-empty: true
+          title: Automated Tests
