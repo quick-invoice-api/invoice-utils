@@ -1,10 +1,27 @@
-on: [push]
+on: [pull_request]
 
+env:
+  TEST_TAG: invoice-utils:test
 jobs:
-  ci:
+  continuous-integration:
     runs-on: ubuntu-latest
-    name: continuous integration
+    name: Continuous Integration
     steps:
-      - name: tests
-        id: tests
-        uses: quick-invoice-api/invoice-utils@v3-action
+      - name: Check out source code
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker BuildX
+        uses: docker/setup-buildx-action@v3
+      - name: Build and cache Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.TEST_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Test
+        run: |
+          docker run --rm ${{ env.TEST_TAG }}
