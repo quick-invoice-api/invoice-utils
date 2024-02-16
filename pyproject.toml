@@ -1,3 +1,7 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
 name = "invoice-utils"
 version = "0.1.0"
@@ -7,12 +11,6 @@ license = "MIT"
 packages = [
     { include = "invoice_utils", from = "src" }
 ]
-
-[tool.poetry.group.dev.dependencies]
-httpx = "^0.26.0"
-pytest-mock = "^3.12.0"
-pytest-cov = "^4.1.0"
-
 [tool.pylint.main]
 py-version = [3, 10]
 ignore-paths = ["tests"]
@@ -26,20 +24,17 @@ good-names = ["i", "j", "k", "x", "y", "z", "ex", "Run", "_"]
 check-protected-access-in-special-methods = true
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
 weasyprint = "^56.1"
 Jinja2 = "^3.1.2"
 fastapi = "^0.105.0"
 uvicorn = "^0.24.0.post1"
 python-dotenv = "^1.0.0"
 
-[tool.poetry.dev-dependencies]
-mypy = "^0.971"
-pylint = "^2.15.3"
-pytest = "^7.1.2"
-pytest-cov = "^3.0.0"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
+[tool.poetry.group.dev.dependencies]
+httpx = "^0.26.0"
+pytest-mock = "^3.12.0"
+pytest-cov = "^4.1.0"
+pytest = "^8.0.0"
+mypy = "^1.8.0"
+pylint = "^3.0.3"
