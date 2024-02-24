@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from logging import getLogger
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -30,3 +31,11 @@ def get_template_by_name(
     if not found:
         raise HTTPException(status_code=404, detail="template not found in repo")
     return TemplateResponse.from_model(result)
+
+
+@router.delete("/{name}", status_code=HTTPStatus.NO_CONTENT)
+def get_template_by_name(
+    name: str,
+    repo: Repository[str, Template] = Depends(di.template_repo)
+):
+    repo.delete(name)

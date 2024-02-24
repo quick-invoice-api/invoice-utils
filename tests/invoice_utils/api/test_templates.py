@@ -176,3 +176,18 @@ def test_get_by_name_template_repo_exception_log(http, template_repo, caplog):
 
     assert caplog.messages == ["repo exception on get"]
     assert caplog.records[0].exc_info[1] == expected
+
+
+def test_delete_success_returns_2xx(http):
+    res = http.delete("/api/v1/template/some-name")
+
+    assert res.status_code == 204
+
+
+def test_delete_success_deletes_from_repo_expected_template(http, template_repo):
+    expected = "expected-name"
+
+    http.delete(f"/api/v1/template/{expected}")
+
+    assert template_repo.delete.call_count == 1
+    assert template_repo.delete.call_args_list == [call(expected)]

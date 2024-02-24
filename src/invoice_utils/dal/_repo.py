@@ -18,6 +18,10 @@ class Repository(Generic[K, T], metaclass=ABCMeta):
     def get_by_key(self, key: K) -> tuple[bool, Optional[T]]:
         pass
 
+    @abstractmethod
+    def delete(self, key: K) -> bool:
+        pass
+
 
 class NotSupportedRepository(Repository[K, T]):
     def list(self) -> list[T]:
@@ -27,4 +31,7 @@ class NotSupportedRepository(Repository[K, T]):
         raise NotImplemented()
 
     def get_by_key(self, key: K) -> tuple[bool, Optional[T]]:
+        raise NotImplemented()
+
+    def delete(self, key: K) -> bool:
         raise NotImplemented()
