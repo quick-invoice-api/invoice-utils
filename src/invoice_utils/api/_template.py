@@ -59,7 +59,8 @@ def upsert_template(
     else:
         try:
             repo.create(body.to_model())
-        except:
+        except Exception as exc:
+            log.error("repo exception on create", exc_info=exc)
             raise HTTPException(
                 status_code=507,
                 detail="error creating template in template repository"
