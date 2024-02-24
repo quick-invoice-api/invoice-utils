@@ -71,6 +71,11 @@ def template_repo(default_template, request):
         if hasattr(request, "param") and request.param is not None
         else default_template
     )
+    result.get_by_key.return_value = (
+        request.param
+        if hasattr(request, "param") and request.param is not None
+        else default_template
+    )
     return result
 
 

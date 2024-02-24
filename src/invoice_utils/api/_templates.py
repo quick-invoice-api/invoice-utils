@@ -20,7 +20,7 @@ class TemplateItem(BaseModel):
 
 @router.get("/", response_model=ListResponse[TemplateItem])
 def list_templates(
-    repo: Repository[Template] = Depends(di.template_repo)
+    repo: Repository[str, Template] = Depends(di.template_repo)
 ):
     try:
         return ListResponse(
@@ -41,7 +41,7 @@ def list_templates(
 @router.post("/", status_code=HTTPStatus.CREATED, response_model=TemplateResponse)
 def create_template(
     body: CreateTemplateRequestBody = Body(),
-    repo: Repository[Template] = Depends(di.template_repo)
+    repo: Repository[str, Template] = Depends(di.template_repo)
 ):
     try:
         result = repo.create(body.to_model())

@@ -1,3 +1,5 @@
+from unittest.mock import call
+
 from pydantic import BaseModel
 import pytest
 
@@ -129,3 +131,11 @@ def test_get_by_name_success_returns_200(http):
     res = http.get("/api/v1/template/irrelevant-name")
 
     assert res.status_code == 200
+
+
+def test_get_by_name_success_calls_repo(http, template_repo):
+    expected = "template-name"
+    http.get(f"/api/v1/template/{expected}")
+
+    assert template_repo.get_by_key.call_count == 1
+    assert template_repo.get_by_key.call_args_list == [call(expected)]

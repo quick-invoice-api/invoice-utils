@@ -1,5 +1,5 @@
-from invoice_utils.dal import MemoryRepository
+from invoice_utils.dal import NotSupportedRepository
 
 
 def template_repo():
-    return MemoryRepository()
+    return NotSupportedRepository()
