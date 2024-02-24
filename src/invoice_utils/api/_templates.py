@@ -11,10 +11,7 @@ from ._request import CreateTemplateRequestBody
 from ._response import ListResponse, TemplateResponse
 
 log = getLogger(__name__)
-router = APIRouter(
-    prefix="/templates",
-    dependencies=[]
-)
+router = APIRouter(prefix="/templates")
 
 
 class TemplateItem(BaseModel):

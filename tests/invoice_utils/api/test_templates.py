@@ -123,3 +123,9 @@ def test_create_template_error_logs_exception(
 
     assert caplog.messages == ["exception while creating template in template repository"]
     assert caplog.records[0].exc_info[1] == expected
+
+
+def test_get_by_name_success_returns_200(http):
+    res = http.get("/api/v1/template/irrelevant-name")
+
+    assert res.status_code == 200
