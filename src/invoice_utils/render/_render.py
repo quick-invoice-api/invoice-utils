@@ -18,7 +18,7 @@ class PdfInvoiceRenderer:
         self.__jinja_template = template_name + ".jinja"
         self.__css_file = template_name + ".css"
 
-    def render(self, context: dict, output_path: str):
+    def render(self, context: dict, output_path: str, persist: bool = False):
         loader = jinja2.FileSystemLoader(searchpath=self.__templates_path)
         jinja_env = jinja2.Environment(loader=loader)
         jinja_env.filters["datetime_format"] = datetime_format
@@ -31,6 +31,8 @@ class PdfInvoiceRenderer:
         css_file_path = self.__templates_path / self.__css_file
         stylesheet = weasyprint.CSS(filename=css_file_path)
         document = printer.render(stylesheets=[stylesheet])
-        with open(output_path, "wb") as f:
-            content = document.write_pdf()
-            f.write(content)
+        content = document.write_pdf()
+        if persist:
+            with open(output_path, "wb") as f:
+                f.write(content)
+        return content
