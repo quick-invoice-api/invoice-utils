@@ -22,4 +22,4 @@ for invoice in invoiced_items:
     context = engine.process(*invoice)
     renderer = PdfInvoiceRenderer("invoice")
     out_path = root_dir / f"{invoice[1]:%Y%m%d}-{invoice[0]:04}-invoice.pdf"
-    renderer.render(context, str(out_path))
+    renderer.render(context, str(out_path), persist=True)
