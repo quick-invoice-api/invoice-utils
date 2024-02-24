@@ -156,3 +156,12 @@ def test_get_by_name_template_not_found_return_404(http, template_repo):
     res = http.get("/api/v1/template/some-name")
 
     assert res.status_code == 404
+
+
+def test_get_by_name_template_repo_exception(http, template_repo):
+    template_repo.get_by_key.side_effect = Exception()
+
+    res = http.get("/api/v1/template/some-name")
+
+    assert res.status_code == 507
+    assert res.json() == {"detail": "repo error while getting template by name"}

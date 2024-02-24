@@ -21,7 +21,11 @@ def list_templates(
     name: str,
     repo: Repository[str, Template] = Depends(di.template_repo)
 ):
-    found, result = repo.get_by_key(name)
+    try:
+        found, result = repo.get_by_key(name)
+    except:
+        raise HTTPException(status_code=507, detail="repo error while getting template by name")
+
     if not found:
         raise HTTPException(status_code=404, detail="template not found in repo")
     return TemplateResponse.from_model(result)
