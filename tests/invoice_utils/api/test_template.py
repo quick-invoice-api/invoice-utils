@@ -65,3 +65,12 @@ def test_delete_success_deletes_from_repo_expected_template(http, template_repo)
 
     assert template_repo.delete.call_count == 1
     assert template_repo.delete.call_args_list == [call(expected)]
+
+
+def test_delete_name_not_found_return_404(http, template_repo):
+    template_repo.delete.return_value = False
+
+    res = http.delete("/api/v1/template/not-found")
+
+    assert res.status_code == 404
+    assert res.json() == {"detail": "template 'not-found' not found"}
