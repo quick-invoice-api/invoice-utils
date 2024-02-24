@@ -102,3 +102,11 @@ def test_create_template_success_return_repo_create_result(
     res = http.post("/api/v1/templates", json=post_template_body)
 
     assert res.json() == expected
+
+
+def test_create_template_error_returns_5xx(http, post_template_body, template_repo):
+    template_repo.create.side_effect = Exception()
+    res = http.post("/api/v1/templates", json=post_template_body)
+
+    assert res.status_code == 507
+    assert res.json() == {"detail": "error creating template in template repository"}

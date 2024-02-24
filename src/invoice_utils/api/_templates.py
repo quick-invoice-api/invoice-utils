@@ -46,5 +46,12 @@ def create_template(
     body: CreateTemplateRequestBody = Body(),
     repo: Repository[Template] = Depends(di.template_repo)
 ):
-    result = repo.create(body.to_model())
-    return TemplateResponse.from_model(result)
+    try:
+        result = repo.create(body.to_model())
+        return TemplateResponse.from_model(result)
+    except:
+        raise HTTPException(
+            status_code=507,
+            detail="error creating template in template repository"
+        )
+
