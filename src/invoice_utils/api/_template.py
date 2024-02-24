@@ -58,6 +58,7 @@ def upsert_template(
         try:
             repo.update(name, body.to_model())
         except Exception as exc:
+            log.error("repo exception on update", exc_info=exc)
             raise HTTPException(
                 status_code=507,
                 detail="error updating template in template repository"
