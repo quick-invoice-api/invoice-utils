@@ -74,3 +74,12 @@ def test_delete_name_not_found_return_404(http, template_repo):
 
     assert res.status_code == 404
     assert res.json() == {"detail": "template 'not-found' not found"}
+
+
+def test_delete_repo_exception_return_5xx(http, template_repo):
+    template_repo.delete.side_effect = Exception
+
+    res = http.delete("/api/v1/template/error")
+
+    assert res.status_code == 507
+    assert res.json() == {"detail": "repo error while deleting template by name"}

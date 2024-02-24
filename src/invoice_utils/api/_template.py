@@ -38,5 +38,9 @@ def get_template_by_name(
     name: str,
     repo: Repository[str, Template] = Depends(di.template_repo)
 ):
-    if not repo.delete(name):
+    try:
+        found = repo.delete(name)
+    except:
+        raise HTTPException(status_code=507, detail="repo error while deleting template by name")
+    if not found:
         raise HTTPException(status_code=404, detail=f"template '{name}' not found")
