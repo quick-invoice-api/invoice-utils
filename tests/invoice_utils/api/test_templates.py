@@ -139,3 +139,12 @@ def test_get_by_name_success_calls_repo(http, template_repo):
 
     assert template_repo.get_by_key.call_count == 1
     assert template_repo.get_by_key.call_args_list == [call(expected)]
+
+
+def test_get_by_name_success_returns_template_from_repo(http, template_repo):
+    res = http.get("/api/v1/template/some-name")
+
+    assert res.json() == {
+        "name": "test-template-1",
+        "rules": []
+    }

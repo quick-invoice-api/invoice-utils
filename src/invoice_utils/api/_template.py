@@ -22,4 +22,4 @@ def list_templates(
     repo: Repository[str, Template] = Depends(di.template_repo)
 ):
     result = repo.get_by_key(name)
-    return TemplateResponse(name="stub", rules=[])
+    return TemplateResponse.from_model(result)
