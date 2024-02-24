@@ -19,7 +19,7 @@ RUN poetry install
 FROM base
 ENV PORT=8000
 
-RUN apk add --no-cache $BUILD_PKGS && poetry install --only main --no-root && apk del $BUILD_PKGS
+RUN apk add --no-cache $BUILD_PKGS $RUNTIME_PKGS && poetry install --only main --no-root && apk del $BUILD_PKGS
 COPY src/ src
 RUN poetry install
 
