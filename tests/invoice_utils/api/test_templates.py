@@ -110,3 +110,16 @@ def test_create_template_error_returns_5xx(http, post_template_body, template_re
 
     assert res.status_code == 507
     assert res.json() == {"detail": "error creating template in template repository"}
+
+
+def test_create_template_error_logs_exception(
+    http, post_template_body, template_repo, caplog
+):
+    expected = Exception()
+    template_repo.create.side_effect = expected
+
+    with caplog.at_level("ERROR"):
+        http.post("/api/v1/templates", json=post_template_body)
+
+    assert caplog.messages == ["exception while creating template in template repository"]
+    assert caplog.records[0].exc_info[1] == expected

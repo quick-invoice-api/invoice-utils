@@ -49,7 +49,8 @@ def create_template(
     try:
         result = repo.create(body.to_model())
         return TemplateResponse.from_model(result)
-    except:
+    except Exception as exc:
+        log.error("exception while creating template in template repository", exc_info=exc)
         raise HTTPException(
             status_code=507,
             detail="error creating template in template repository"
