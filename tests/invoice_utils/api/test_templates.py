@@ -3,7 +3,7 @@ import pytest
 from invoice_utils.dal import Template
 
 
-def test_list_templates_success(http):
+def test_list_templates_success_return_2xx(http):
     res = http.get("/api/v1/templates/")
 
     assert res.status_code == 200
@@ -33,3 +33,23 @@ def test_list_templates_returns_all_templates_from_repo(http, template_repo, exp
         "count": 1,
         "items": expected_items
     }
+
+
+def test_list_templates_on_repo_error_return_5xx(http, template_repo):
+    template_repo.list.side_effect = Exception()
+
+    res = http.get("/api/v1/templates")
+
+    assert res.status_code == 507
+    assert res.json() == {"detail": "error reading from template repository"}
+
+
+def test_list_templates_on_repo_error_logs_exception(http, template_repo, caplog):
+    expected_exception = Exception()
+    template_repo.list.side_effect = expected_exception
+
+    with caplog.at_level("ERROR"):
+        http.get("/api/v1/templates")
+
+    assert caplog.messages[0] == "exception while fetching templates from repo"
+    assert caplog.records[0].exc_info[1] == expected_exception
