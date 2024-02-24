@@ -17,7 +17,7 @@ class TemplateItem(BaseModel):
 
 
 @router.get("/{name}", response_model=TemplateResponse)
-def list_templates(
+def get_template_by_name(
     name: str,
     repo: Repository[str, Template] = Depends(di.template_repo)
 ):
