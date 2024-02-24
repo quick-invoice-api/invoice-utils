@@ -40,7 +40,8 @@ def get_template_by_name(
 ):
     try:
         found = repo.delete(name)
-    except:
+    except Exception as exc:
+        log.error("repo exception on delete", exc_info=exc)
         raise HTTPException(status_code=507, detail="repo error while deleting template by name")
     if not found:
         raise HTTPException(status_code=404, detail=f"template '{name}' not found")

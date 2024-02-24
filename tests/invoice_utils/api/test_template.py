@@ -83,3 +83,14 @@ def test_delete_repo_exception_return_5xx(http, template_repo):
 
     assert res.status_code == 507
     assert res.json() == {"detail": "repo error while deleting template by name"}
+
+
+def test_delete_repo_exception_log_exception(http, template_repo, caplog):
+    expected = Exception()
+    template_repo.delete.side_effect = expected
+
+    with caplog.at_level("ERROR"):
+        http.delete("/api/v1/template/error")
+
+    assert caplog.messages == ["repo exception on delete"]
+    assert caplog.records[0].exc_info[1] == expected
