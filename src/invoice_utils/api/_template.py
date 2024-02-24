@@ -34,7 +34,7 @@ def get_template_by_name(
 
 
 @router.delete("/{name}", status_code=HTTPStatus.NO_CONTENT)
-def get_template_by_name(
+def delete_template(
     name: str,
     repo: Repository[str, Template] = Depends(di.template_repo)
 ):
@@ -45,3 +45,11 @@ def get_template_by_name(
         raise HTTPException(status_code=507, detail="repo error while deleting template by name")
     if not found:
         raise HTTPException(status_code=404, detail=f"template '{name}' not found")
+
+
+@router.put("/{name}", status_code=HTTPStatus.ACCEPTED, response_model=TemplateResponse)
+def upsert_template(
+    name: str,
+    repo: Repository[str, Template] = Depends(di.template_repo)
+):
+    return TemplateResponse(name="stub", rules=[])

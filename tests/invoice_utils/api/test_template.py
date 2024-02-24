@@ -94,3 +94,9 @@ def test_delete_repo_exception_log_exception(http, template_repo, caplog):
 
     assert caplog.messages == ["repo exception on delete"]
     assert caplog.records[0].exc_info[1] == expected
+
+
+def test_put_template_success_returns_accepted(http, template_req_body):
+    res = http.put("/api/v1/template/some-name", json=template_req_body)
+
+    assert res.status_code == 202
