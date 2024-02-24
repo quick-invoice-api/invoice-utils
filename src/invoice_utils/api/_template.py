@@ -57,5 +57,11 @@ def upsert_template(
     if repo.exists(name):
         repo.update(name, body.to_model())
     else:
-        repo.create(body.to_model())
+        try:
+            repo.create(body.to_model())
+        except:
+            raise HTTPException(
+                status_code=507,
+                detail="error creating template in template repository"
+            )
     return TemplateResponse(name="stub", rules=[])

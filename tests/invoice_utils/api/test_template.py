@@ -145,3 +145,12 @@ def test_put_template_that_does_not_exist_calls_repo_create(
         "name": "create-template-stub-1",
         "rules": [{"create-stub": "different-from-repo-create"}]
     }
+
+
+def test_put_template_repo_create_error_returns_5xx(http, template_req_body, template_repo):
+    template_repo.exists.return_value = False
+    template_repo.create.side_effect = Exception()
+    res = http.put("/api/v1/template/some-template", json=template_req_body)
+
+    assert res.status_code == 507
+    assert res.json() == {"detail": "error creating template in template repository"}
