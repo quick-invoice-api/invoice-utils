@@ -1,12 +1,13 @@
 from http import HTTPStatus
 from logging import getLogger
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel
 
 from invoice_utils.dal import Repository, Template
 import invoice_utils.di as di
 
+from ._request import TemplateRequestBody
 from ._response import TemplateResponse
 
 log = getLogger(__name__)
@@ -50,6 +51,11 @@ def delete_template(
 @router.put("/{name}", status_code=HTTPStatus.ACCEPTED, response_model=TemplateResponse)
 def upsert_template(
     name: str,
+    body: TemplateRequestBody = Body(),
     repo: Repository[str, Template] = Depends(di.template_repo)
 ):
+    if repo.exists(name):
+        repo.update(name, body.to_model())
+    else:
+        repo.create(body.to_model())
     return TemplateResponse(name="stub", rules=[])

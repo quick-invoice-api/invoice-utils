@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from invoice_utils.dal import Repository, Template
 import invoice_utils.di as di
 
-from ._request import CreateTemplateRequestBody
+from ._request import TemplateRequestBody
 from ._response import ListResponse, TemplateResponse
 
 log = getLogger(__name__)
@@ -40,7 +40,7 @@ def list_templates(
 
 @router.post("/", status_code=HTTPStatus.CREATED, response_model=TemplateResponse)
 def create_template(
-    body: CreateTemplateRequestBody = Body(),
+    body: TemplateRequestBody = Body(),
     repo: Repository[str, Template] = Depends(di.template_repo)
 ):
     try:

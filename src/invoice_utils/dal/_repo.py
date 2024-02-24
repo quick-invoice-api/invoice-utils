@@ -22,6 +22,14 @@ class Repository(Generic[K, T], metaclass=ABCMeta):
     def delete(self, key: K) -> bool:
         pass
 
+    @abstractmethod
+    def exists(self, key: K) -> bool:
+        pass
+
+    @abstractmethod
+    def update(self, key: K, model: T) -> T:
+        pass
+
 
 class NotSupportedRepository(Repository[K, T]):
     def list(self) -> list[T]:
@@ -34,4 +42,10 @@ class NotSupportedRepository(Repository[K, T]):
         raise NotImplemented()
 
     def delete(self, key: K) -> bool:
+        raise NotImplemented()
+
+    def exists(self, key: K) -> bool:
+        raise NotImplemented()
+
+    def update(self, key: K, model: T) -> tuple[bool, Optional[T]]:
         raise NotImplemented()

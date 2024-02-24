@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from invoice_utils.dal import Template
 
 
-class CreateTemplateRequestBody(BaseModel):
+class TemplateRequestBody(BaseModel):
     name: str
     rules: list[dict]
 

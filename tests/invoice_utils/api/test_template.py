@@ -1,4 +1,6 @@
-from unittest.mock import call
+from unittest.mock import call, ANY
+
+from pydantic import BaseModel
 
 
 def test_get_by_name_success_returns_200(http):
@@ -100,3 +102,46 @@ def test_put_template_success_returns_accepted(http, template_req_body):
     res = http.put("/api/v1/template/some-name", json=template_req_body)
 
     assert res.status_code == 202
+
+
+def test_put_template_success_checks_template_exists(
+    http, template_req_body, template_repo
+):
+    expected = "some-name"
+    http.put(f"/api/v1/template/{expected}", json=template_req_body)
+
+    assert template_repo.exists.call_count == 1
+    assert template_repo.exists.call_args_list == [call(expected)]
+
+
+def test_put_template_that_already_exists_calls_repo_update(
+    http, template_req_body, template_repo
+):
+    template_repo.exists.return_value = True
+
+    http.put(f"/api/v1/template/some-template", json=template_req_body)
+
+    assert template_repo.update.call_count == 1
+    assert template_repo.update.call_args_list == [call("some-template", ANY)]
+    template = template_repo.update.call_args_list[0][0][1]
+    assert isinstance(template, BaseModel)
+    assert template.dict() == {
+        "name": "create-template-stub-1",
+        "rules": [{"create-stub": "different-from-repo-create"}]
+    }
+
+
+def test_put_template_that_does_not_exist_calls_repo_create(
+    http, template_req_body, template_repo
+):
+    template_repo.exists.return_value = False
+
+    http.put(f"/api/v1/template/some-template", json=template_req_body)
+
+    assert template_repo.create.call_count == 1
+    template = template_repo.create.call_args_list[0][0][0]
+    assert isinstance(template, BaseModel)
+    assert template.dict() == {
+        "name": "create-template-stub-1",
+        "rules": [{"create-stub": "different-from-repo-create"}]
+    }

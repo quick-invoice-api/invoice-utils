@@ -77,6 +77,11 @@ def template_repo(default_template, request):
         else True, default_template
     )
     result.delete.return_value = True
+    result.update.return_value = (
+        request.param
+        if hasattr(request, "param") and request.param is not None
+        else True, default_template
+    )
     return result
 
 
