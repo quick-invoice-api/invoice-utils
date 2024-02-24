@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Generic, TypeVar
-
+from typing import Generic, TypeVar, Optional
 
 K = TypeVar("K")
 T = TypeVar("T")
@@ -16,7 +15,7 @@ class Repository(Generic[K, T], metaclass=ABCMeta):
         return model
 
     @abstractmethod
-    def get_by_key(self, key: K) -> T:
+    def get_by_key(self, key: K) -> tuple[bool, Optional[T]]:
         pass
 
 
@@ -27,5 +26,5 @@ class NotSupportedRepository(Repository[K, T]):
     def create(self, model: T) -> T:
         raise NotImplemented()
 
-    def get_by_key(self, key: K) -> T:
+    def get_by_key(self, key: K) -> tuple[bool, Optional[T]]:
         raise NotImplemented()

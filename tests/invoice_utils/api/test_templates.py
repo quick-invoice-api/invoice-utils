@@ -148,3 +148,11 @@ def test_get_by_name_success_returns_template_from_repo(http, template_repo):
         "name": "test-template-1",
         "rules": []
     }
+
+
+def test_get_by_name_template_not_found_return_404(http, template_repo):
+    template_repo.get_by_key.return_value = False, None
+
+    res = http.get("/api/v1/template/some-name")
+
+    assert res.status_code == 404
