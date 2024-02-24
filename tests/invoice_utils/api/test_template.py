@@ -166,3 +166,14 @@ def test_put_template_repo_create_error_logs_exception(http, template_req_body, 
 
     assert caplog.messages == ["repo exception on create"]
     assert caplog.records[0].exc_info[1] == expected
+
+
+def test_put_template_repo_update_error_returns_5xx(http, template_req_body, template_repo):
+    template_repo.exists.return_value = True
+    template_repo.update.side_effect = Exception()
+    res = http.put("/api/v1/template/some-template", json=template_req_body)
+
+    assert res.status_code == 507
+    assert res.json() == {"detail": "error updating template in template repository"}
+
+

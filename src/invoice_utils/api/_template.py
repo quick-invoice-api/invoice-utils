@@ -55,7 +55,13 @@ def upsert_template(
     repo: Repository[str, Template] = Depends(di.template_repo)
 ):
     if repo.exists(name):
-        repo.update(name, body.to_model())
+        try:
+            repo.update(name, body.to_model())
+        except Exception as exc:
+            raise HTTPException(
+                status_code=507,
+                detail="error updating template in template repository"
+            )
     else:
         try:
             repo.create(body.to_model())
