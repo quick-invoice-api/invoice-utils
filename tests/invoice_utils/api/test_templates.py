@@ -53,3 +53,9 @@ def test_list_templates_on_repo_error_logs_exception(http, template_repo, caplog
 
     assert caplog.messages[0] == "exception while fetching templates from repo"
     assert caplog.records[0].exc_info[1] == expected_exception
+
+
+def test_create_template_success_return_2xx(http):
+    res = http.post("/api/v1/templates")
+
+    assert res.status_code == 201

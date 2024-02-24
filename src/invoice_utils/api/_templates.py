@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from logging import getLogger
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,7 +7,7 @@ from pydantic import BaseModel
 from invoice_utils.dal import Repository, Template
 import invoice_utils.di as di
 
-from invoice_utils.api._response import ListResponse
+from invoice_utils.api._response import ListResponse, TemplateResponse
 
 log = getLogger(__name__)
 router = APIRouter(
@@ -37,3 +38,8 @@ def list_templates(
             status_code=507,
             detail="error reading from template repository"
         )
+
+
+@router.post("/", status_code=HTTPStatus.CREATED, response_model=TemplateResponse)
+def create_template():
+    return TemplateResponse(name="stub", rules=[])
