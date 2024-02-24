@@ -14,32 +14,6 @@ MESSAGE_ARGUMENT = 2
 
 
 @pytest.fixture()
-def environment(monkeypatch, request):
-    if hasattr(request, "param"):
-        env = request.param
-    else:
-        env = {}
-    invoice_utils_env_vars = [
-        "INVOICE_UTILS_MAIL_LOGIN_USER",
-        "INVOICE_UTILS_MAIL_LOGIN_PASSWORD"
-    ]
-    for k in invoice_utils_env_vars:
-        monkeypatch.delenv(k, raising=False)
-    for k, v in env.items():
-        monkeypatch.setenv(k, v)
-    from invoice_utils import config
-    reload(config)
-    return env
-
-
-@pytest.fixture()
-def http(environment, monkeypatch):
-    with patch("dotenv.load_dotenv", MagicMock(name="load_dotenv")):
-        import invoice_utils.web as web
-        return TestClient(web.app)
-
-
-@pytest.fixture()
 def invoice_request_body():
     return {
         "header": {
