@@ -32,23 +32,3 @@ class Repository(Generic[K, T], metaclass=ABCMeta):
     @abstractmethod
     def update(self, key: K, model: T) -> T:
         pass
-
-
-class NotSupportedRepository(Repository[K, T]):
-    def list(self) -> list[T]:
-        raise NotImplemented()
-
-    def create(self, model: T) -> T:
-        raise NotImplemented()
-
-    def get_by_key(self, key: K) -> tuple[bool, Optional[T]]:
-        raise NotImplemented()
-
-    def delete(self, key: K) -> bool:
-        raise NotImplemented()
-
-    def exists(self, key: K) -> bool:
-        raise NotImplemented()
-
-    def update(self, key: K, model: T) -> tuple[bool, Optional[T]]:
-        raise NotImplemented()
