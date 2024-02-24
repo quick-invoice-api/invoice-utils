@@ -1,6 +1,17 @@
+from pydantic import BaseModel
 import pytest
 
 from invoice_utils.dal import Template
+
+
+@pytest.fixture
+def post_template_body():
+    return dict(
+        name="create-template-stub-1",
+        rules=[
+            {"create-stub": "different-from-repo-create"}
+        ]
+    )
 
 
 def test_list_templates_success_return_2xx(http):
@@ -55,7 +66,39 @@ def test_list_templates_on_repo_error_logs_exception(http, template_repo, caplog
     assert caplog.records[0].exc_info[1] == expected_exception
 
 
-def test_create_template_success_return_2xx(http):
-    res = http.post("/api/v1/templates")
+def test_create_template_success_return_2xx(http, post_template_body):
+    res = http.post("/api/v1/templates", json=post_template_body)
 
     assert res.status_code == 201
+
+
+def test_create_template_success_calls_repo_create(
+    http, post_template_body, template_repo
+):
+    http.post("/api/v1/templates", json=post_template_body)
+
+    assert template_repo.create.call_count == 1
+    template = template_repo.create.call_args_list[0][0][0]
+    assert isinstance(template, BaseModel)
+    assert template.dict() == {
+        "name": "create-template-stub-1",
+        "rules": [{"create-stub": "different-from-repo-create"}]
+    }
+
+
+@pytest.mark.parametrize(
+    "template_repo,expected",
+    [
+        (
+                Template(name="create-test-1", rules=[{"stub": "value"}]),
+                {"name": "create-test-1", "rules": [{"stub": "value"}]}
+        )
+    ],
+    indirect=["template_repo"]
+)
+def test_create_template_success_return_repo_create_result(
+    http, post_template_body, template_repo, expected
+):
+    res = http.post("/api/v1/templates", json=post_template_body)
+
+    assert res.json() == expected

@@ -1,13 +1,14 @@
 from http import HTTPStatus
 from logging import getLogger
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel
 
 from invoice_utils.dal import Repository, Template
 import invoice_utils.di as di
 
-from invoice_utils.api._response import ListResponse, TemplateResponse
+from ._request import CreateTemplateRequestBody
+from ._response import ListResponse, TemplateResponse
 
 log = getLogger(__name__)
 router = APIRouter(
@@ -41,5 +42,9 @@ def list_templates(
 
 
 @router.post("/", status_code=HTTPStatus.CREATED, response_model=TemplateResponse)
-def create_template():
-    return TemplateResponse(name="stub", rules=[])
+def create_template(
+    body: CreateTemplateRequestBody = Body(),
+    repo: Repository[Template] = Depends(di.template_repo)
+):
+    result = repo.create(body.to_model())
+    return TemplateResponse.from_model(result)
