@@ -1,5 +1,6 @@
 from unittest.mock import call, ANY
 
+import pytest
 from pydantic import BaseModel
 
 
@@ -40,7 +41,7 @@ def test_get_by_name_template_repo_exception_return_5xx(http, template_repo):
     res = http.get("/api/v1/template/some-name")
 
     assert res.status_code == 507
-    assert res.json() == {"detail": "repo error while getting template by name"}
+    assert res.json() == {"detail": "repo error on get template by name"}
 
 
 def test_get_by_name_template_repo_exception_log(http, template_repo, caplog):
@@ -50,7 +51,7 @@ def test_get_by_name_template_repo_exception_log(http, template_repo, caplog):
     with caplog.at_level("ERROR"):
         http.get("/api/v1/template/some-name")
 
-    assert caplog.messages == ["repo exception on get"]
+    assert caplog.messages == ["repo error on get by key"]
     assert caplog.records[0].exc_info[1] == expected
 
 
@@ -84,7 +85,7 @@ def test_delete_repo_exception_return_5xx(http, template_repo):
     res = http.delete("/api/v1/template/error")
 
     assert res.status_code == 507
-    assert res.json() == {"detail": "repo error while deleting template by name"}
+    assert res.json() == {"detail": "repo error on delete template by name"}
 
 
 def test_delete_repo_exception_log_exception(http, template_repo, caplog):
@@ -94,7 +95,7 @@ def test_delete_repo_exception_log_exception(http, template_repo, caplog):
     with caplog.at_level("ERROR"):
         http.delete("/api/v1/template/error")
 
-    assert caplog.messages == ["repo exception on delete"]
+    assert caplog.messages == ["repo error on delete"]
     assert caplog.records[0].exc_info[1] == expected
 
 
@@ -153,7 +154,7 @@ def test_put_template_repo_create_error_returns_5xx(http, template_req_body, tem
     res = http.put("/api/v1/template/some-template", json=template_req_body)
 
     assert res.status_code == 507
-    assert res.json() == {"detail": "error creating template in template repository"}
+    assert res.json() == {"detail": "repo error on insert template on update"}
 
 
 def test_put_template_repo_create_error_logs_exception(http, template_req_body, template_repo, caplog):
@@ -164,7 +165,7 @@ def test_put_template_repo_create_error_logs_exception(http, template_req_body, 
     with caplog.at_level("ERROR"):
         http.put("/api/v1/template/some-template", json=template_req_body)
 
-    assert caplog.messages == ["repo exception on create"]
+    assert caplog.messages == ["repo error on create"]
     assert caplog.records[0].exc_info[1] == expected
 
 
@@ -174,7 +175,7 @@ def test_put_template_repo_update_error_returns_5xx(http, template_req_body, tem
     res = http.put("/api/v1/template/some-template", json=template_req_body)
 
     assert res.status_code == 507
-    assert res.json() == {"detail": "error updating template in template repository"}
+    assert res.json() == {"detail": "repo error on update template by name"}
 
 
 def test_put_template_repo_update_error_logs_exception(http, template_req_body, template_repo, caplog):
@@ -185,5 +186,38 @@ def test_put_template_repo_update_error_logs_exception(http, template_req_body, 
     with caplog.at_level("ERROR"):
         http.put("/api/v1/template/some-template", json=template_req_body)
 
-    assert caplog.messages == ["repo exception on update"]
+    assert caplog.messages == ["repo error on update"]
+    assert caplog.records[0].exc_info[1] == expected
+
+
+def test_put_already_existing_template_returns_repo_result(http, template_req_body, template_repo):
+    res = http.put("/api/v1/template/some-template", json=template_req_body)
+
+    assert res.json() == {"name": "test-template-1", "rules": []}
+
+
+@pytest.mark.parametrize("changed,expected", [(True, "changed"), (False, "not changed")])
+def test_put_already_existing_template_logs_when_changed(
+    http, template_req_body, template_repo, changed, expected, default_template, caplog
+):
+    template_repo.update.return_value = changed, default_template
+
+    with caplog.at_level("INFO"):
+        http.put("/api/v1/template/some-template", json=template_req_body)
+
+    assert caplog.messages[0] == f"template 'some-template' was {expected}."
+
+
+def test_put_repo_existence_check_unhandled_exception_is_logged_and_handled(
+    http, template_req_body, template_repo, caplog
+):
+    expected = Exception()
+    template_repo.exists.side_effect = expected
+
+    with caplog.at_level("ERROR"):
+        res = http.put("/api/v1/template/some-template", json=template_req_body)
+
+    assert res.status_code == 507
+    assert res.json() == {"detail": "repo error on find template by name"}
+    assert caplog.messages == ["repo error on exists"]
     assert caplog.records[0].exc_info[1] == expected

@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from http import HTTPStatus
 from logging import getLogger
 
@@ -18,17 +19,22 @@ class TemplateItem(BaseModel):
     name: str
 
 
+@contextmanager
+def error_handler(operation: str, http_detail_text: str):
+    try:
+        yield
+    except Exception as exc:
+        log.error("repo error on %s", operation, exc_info=exc)
+        raise HTTPException(status_code=507, detail=http_detail_text)
+
+
 @router.get("/{name}", response_model=TemplateResponse)
 def get_template_by_name(
     name: str,
     repo: Repository[str, Template] = Depends(di.template_repo)
 ):
-    try:
+    with error_handler("get by key", "repo error on get template by name"):
         found, result = repo.get_by_key(name)
-    except Exception as exc:
-        log.error("repo exception on get", exc_info=exc)
-        raise HTTPException(status_code=507, detail="repo error while getting template by name")
-
     if not found:
         raise HTTPException(status_code=404, detail="template not found in repo")
     return TemplateResponse.from_model(result)
@@ -39,11 +45,8 @@ def delete_template(
     name: str,
     repo: Repository[str, Template] = Depends(di.template_repo)
 ):
-    try:
+    with error_handler("delete", "repo error on delete template by name"):
         found = repo.delete(name)
-    except Exception as exc:
-        log.error("repo exception on delete", exc_info=exc)
-        raise HTTPException(status_code=507, detail="repo error while deleting template by name")
     if not found:
         raise HTTPException(status_code=404, detail=f"template '{name}' not found")
 
@@ -54,22 +57,16 @@ def upsert_template(
     body: TemplateRequestBody = Body(),
     repo: Repository[str, Template] = Depends(di.template_repo)
 ):
-    if repo.exists(name):
-        try:
-            repo.update(name, body.to_model())
-        except Exception as exc:
-            log.error("repo exception on update", exc_info=exc)
-            raise HTTPException(
-                status_code=507,
-                detail="error updating template in template repository"
+    with error_handler("exists", "repo error on find template by name"):
+        found = repo.exists(name)
+
+    if found:
+        with error_handler("update", "repo error on update template by name"):
+            changed, result = repo.update(name, body.to_model())
+            log.info(
+                "template '%s' was %s.", name, "changed" if changed else "not changed"
             )
     else:
-        try:
-            repo.create(body.to_model())
-        except Exception as exc:
-            log.error("repo exception on create", exc_info=exc)
-            raise HTTPException(
-                status_code=507,
-                detail="error creating template in template repository"
-            )
-    return TemplateResponse(name="stub", rules=[])
+        with error_handler("create", "repo error on insert template on update"):
+            result = repo.create(body.to_model())
+    return result
