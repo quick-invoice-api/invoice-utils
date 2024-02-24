@@ -1,8 +1,11 @@
 from abc import ABCMeta, abstractmethod
 from typing import Generic, TypeVar, Optional
 
+from pydantic import BaseModel
+
+
 K = TypeVar("K")
-T = TypeVar("T")
+T = TypeVar("T", bound=BaseModel)
 
 
 class Repository(Generic[K, T], metaclass=ABCMeta):

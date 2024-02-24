@@ -11,9 +11,13 @@ import invoice_utils.di as di
 
 
 @pytest.fixture(scope="session")
-def resolve_path():
+def data_dir():
+    return pathlib.Path(__file__).parent.parent / "data"
+
+
+@pytest.fixture(scope="session")
+def resolve_path(data_dir):
     def f(name: str) -> str:
-        data_dir = pathlib.Path(__file__).parent.parent / "data"
         desired_path = data_dir / name
         if desired_path.exists():
             return str(desired_path.absolute())

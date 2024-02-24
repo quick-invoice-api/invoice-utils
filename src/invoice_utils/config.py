@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 
 def _str_to_bool(arg: str) -> bool:
@@ -10,7 +11,7 @@ DEFAULT_PORT = 587
 DEFAULT_MAIL_SUBJECT = "Invoice generated with invoice-utils"
 DEFAULT_BODY_TEMPLATE_NAME = "default_template.html"
 DEFAULT_BODY_TEMPLATE_PACKAGE = "invoice_utils"
-DEFAULT_BODY_TEMPLATE_DIRECTORY = "email_templates"
+DEFAULT_BODY_TEMPLATE_DIRECTORY = str(Path(__file__).parent / "templates")
 
 INVOICE_UTILS_MAIL_HOST = os.getenv("INVOICE_UTILS_MAIL_HOST", DEFAULT_MAIL_HOST)
 INVOICE_UTILS_MAIL_PORT = os.getenv("INVOICE_UTILS_MAIL_PORT", DEFAULT_PORT)

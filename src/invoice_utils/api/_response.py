@@ -7,7 +7,7 @@ from invoice_utils.dal import Template
 T = TypeVar("T")
 
 
-class ListResponse(Generic[T], BaseModel):
+class ListResponse(BaseModel, Generic[T]):
     count: int
     items: list[T]
 
