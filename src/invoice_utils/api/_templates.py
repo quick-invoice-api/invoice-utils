@@ -31,7 +31,7 @@ def list_templates(
             ]
         )
     except Exception as exc:
-        log.error("exception while fetching templates from repo", exc_info=exc)
+        log.error("repo exception on list", exc_info=exc)
         raise HTTPException(
             status_code=507,
             detail="error reading from template repository"
@@ -47,7 +47,7 @@ def create_template(
         result = repo.create(body.to_model())
         return TemplateResponse.from_model(result)
     except Exception as exc:
-        log.error("exception while creating template in template repository", exc_info=exc)
+        log.error("repo exception on create", exc_info=exc)
         raise HTTPException(
             status_code=507,
             detail="error creating template in template repository"

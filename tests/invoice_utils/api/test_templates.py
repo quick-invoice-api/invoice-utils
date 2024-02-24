@@ -64,7 +64,7 @@ def test_list_templates_on_repo_error_logs_exception(http, template_repo, caplog
     with caplog.at_level("ERROR"):
         http.get("/api/v1/templates")
 
-    assert caplog.messages[0] == "exception while fetching templates from repo"
+    assert caplog.messages[0] == "repo exception on list"
     assert caplog.records[0].exc_info[1] == expected_exception
 
 
@@ -123,7 +123,7 @@ def test_create_template_error_logs_exception(
     with caplog.at_level("ERROR"):
         http.post("/api/v1/templates", json=post_template_body)
 
-    assert caplog.messages == ["exception while creating template in template repository"]
+    assert caplog.messages == ["repo exception on create"]
     assert caplog.records[0].exc_info[1] == expected
 
 
@@ -158,10 +158,21 @@ def test_get_by_name_template_not_found_return_404(http, template_repo):
     assert res.status_code == 404
 
 
-def test_get_by_name_template_repo_exception(http, template_repo):
+def test_get_by_name_template_repo_exception_return_5xx(http, template_repo):
     template_repo.get_by_key.side_effect = Exception()
 
     res = http.get("/api/v1/template/some-name")
 
     assert res.status_code == 507
     assert res.json() == {"detail": "repo error while getting template by name"}
+
+
+def test_get_by_name_template_repo_exception_log(http, template_repo, caplog):
+    expected = Exception()
+    template_repo.get_by_key.side_effect = expected
+
+    with caplog.at_level("ERROR"):
+        http.get("/api/v1/template/some-name")
+
+    assert caplog.messages == ["repo exception on get"]
+    assert caplog.records[0].exc_info[1] == expected

@@ -23,7 +23,8 @@ def list_templates(
 ):
     try:
         found, result = repo.get_by_key(name)
-    except:
+    except Exception as exc:
+        log.error("repo exception on get", exc_info=exc)
         raise HTTPException(status_code=507, detail="repo error while getting template by name")
 
     if not found:
