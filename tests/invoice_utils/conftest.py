@@ -1,3 +1,4 @@
+import json
 import pathlib
 from importlib import reload
 from unittest.mock import patch, MagicMock
@@ -5,16 +6,26 @@ from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 import pytest
 
+from invoice_utils.dal import Template, Repository
+import invoice_utils.di as di
+
 
 @pytest.fixture(scope="session")
-def input_data_resolver():
+def resolve_path():
     def f(name: str) -> str:
         data_dir = pathlib.Path(__file__).parent.parent / "data"
         desired_path = data_dir / name
         if desired_path.exists():
             return str(desired_path.absolute())
-        raise FileNotFoundError(f"file {name} not found in the project's data dir")
+        raise FileNotFoundError(f"file {name} not found in the test data dir")
+    return f
 
+
+@pytest.fixture
+def read_text(resolve_path):
+    def f(name: str) -> str:
+        with open(resolve_path(name)) as f:
+            return f.read()
     return f
 
 
@@ -37,8 +48,31 @@ def environment(monkeypatch, request):
     return env
 
 
+@pytest.fixture
+def default_template(read_text):
+    template_str = read_text("empty.json")
+
+    return Template(
+        name="test-template-1",
+        rules=json.loads(template_str)
+    )
+
+
+@pytest.fixture
+def template_repo(default_template, request):
+    result = MagicMock(spec=Repository)
+    result.list.return_value = (
+        request.param
+        if hasattr(request, "param") and request.param is not None
+        else [default_template]
+    )
+    return result
+
+
 @pytest.fixture()
-def http(environment, monkeypatch):
+def http(environment, monkeypatch, template_repo):
     with patch("dotenv.load_dotenv", MagicMock(name="load_dotenv")):
         import invoice_utils.web as web
+        web.app.dependency_overrides[di.template_repo] = lambda: template_repo
+
         return TestClient(web.app)

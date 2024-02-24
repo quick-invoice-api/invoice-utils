@@ -5,8 +5,8 @@ from invoice_utils.engine import InvoicingEngine
 from invoice_utils.models import InvoicedItem
 
 
-def test_process_computes_totals(input_data_resolver):
-    engine = InvoicingEngine(input_data_resolver("basic.json"))
+def test_process_computes_totals(resolve_path):
+    engine = InvoicingEngine(resolve_path("basic.json"))
 
     output = engine.process(
         1, datetime.now(), [InvoicedItem("test", Decimal(2), Decimal(5))]
