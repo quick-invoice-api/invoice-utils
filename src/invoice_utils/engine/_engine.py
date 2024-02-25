@@ -1,6 +1,6 @@
 import json
 import pathlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from json import JSONDecodeError
 from logging import getLogger
@@ -138,6 +138,9 @@ class InvoicingEngine:
                 headers={"Accept": "text/xml", "Accept-Encoding": "utf-8"}
             )
             root = ET.fromstring(res.text)
+            days_from_friday = invoice_date.weekday() - 4
+            if days_from_friday > 0:
+                invoice_date = invoice_date - timedelta(days=days_from_friday)
             invoice_date_str = invoice_date.strftime("%Y-%m-%d")
             date_rates = None
             for cube_node in root.findall(".//{http://www.bnr.ro/xsd}Cube"):

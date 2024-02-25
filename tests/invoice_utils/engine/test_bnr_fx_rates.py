@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -85,9 +85,12 @@ def test_engine_bnr_rule_no_symbols_no_exchange_rates(engine, invoiced_item, bnr
     assert result["header"]["currency"]["exchangeRates"] == {}
 
 
-def test_engine_bnr_rule_adds_exchange_rates_for_symbols(engine, invoiced_item, bnr_res):
+@pytest.mark.parametrize(
+    "invoice_date", [TEST_INVOICE_DATE, datetime(2011, 11, 12), datetime(2011, 11, 13)]
+)
+def test_engine_bnr_rule_adds_exchange_rates_for_symbols(engine, invoiced_item, bnr_res, invoice_date):
     result = engine.process(
-        TEST_INVOICE_NUMBER, TEST_INVOICE_DATE, [invoiced_item]
+        TEST_INVOICE_NUMBER, invoice_date, [invoiced_item]
     )
 
     assert len(result["header"]["currency"]["exchangeRates"]) == 2
