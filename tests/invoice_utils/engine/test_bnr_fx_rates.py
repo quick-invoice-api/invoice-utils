@@ -27,12 +27,16 @@ def bnr_sample_path(data_dir):
 
 
 @pytest.fixture
-def engine(bnr_sample_path, request):
-    file_path = bnr_sample_path if not hasattr(request, "param") or request.param is None else request.param
+def engine(bnr_sample_path, data_dir, request):
+    file_path = (
+        bnr_sample_path
+        if not hasattr(request, "param") or request.param is None
+        else str(data_dir / request.param)
+    )
     return InvoicingEngine(file_path)
 
 
-def test_engine_loads_makes_call_to_bnr_for_invoice_date(
+def test_engine_calls_bnr_for_invoice_date(
     engine, invoice_date, invoiced_item, responses, read_text
 ):
     bnr_resp = responses.get(
@@ -44,3 +48,14 @@ def test_engine_loads_makes_call_to_bnr_for_invoice_date(
 
     assert bnr_resp.call_count == 1
     assert bnr_resp.status == 200
+
+
+@pytest.mark.parametrize("engine", ["empty.json"], indirect=["engine"])
+def test_engine_does_not_call_bnr(
+    engine, invoice_date, invoiced_item, responses, read_text
+):
+    engine.process(12, invoice_date, [invoiced_item])
+
+    assert responses.assert_call_count(
+        "https://bnr.ro/files/xml/years/nbrfxrates2011.xml", 0
+    ) is True
