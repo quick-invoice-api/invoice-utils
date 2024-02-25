@@ -17,16 +17,23 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from jinja2 import Environment, PackageLoader, select_autoescape
 
+from invoice_utils.api import template_router, templates_router
 from invoice_utils.engine import InvoicingEngine
 from invoice_utils.models import InvoicedItem
 load_dotenv()  # Need to do this now for it to work.
 import invoice_utils.config as config
 from invoice_utils.render import PdfInvoiceRenderer
 
-app = FastAPI()
-# load_dotenv()
+
+# basic setup
 basicConfig(stream=stdout, level=DEBUG)
 log = getLogger("invoice-utils")
+
+# API setup
+API_PATH_PREFIX = "/api/v1"
+app = FastAPI()
+app.include_router(template_router, prefix=API_PATH_PREFIX)
+app.include_router(templates_router, prefix=API_PATH_PREFIX)
 
 
 class InvoiceRequestHeader(BaseModel):
