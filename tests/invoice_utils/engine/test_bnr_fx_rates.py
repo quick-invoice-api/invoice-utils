@@ -107,3 +107,18 @@ def test_engine_bnr_rule_invalid_xml_response_logs_warning(
 
     assert result["header"]["currency"]["exchangeRates"] == {}
     assert caplog.messages[0] == "invalid XML downloaded from BNR"
+
+
+def test_engine_bnr_not_accessible_logs_error(
+    engine, invoiced_item, bnr_res, caplog
+):
+    exception = Exception()
+    bnr_res.body = exception
+    with caplog.at_level("ERROR"):
+        result = engine.process(
+            TEST_INVOICE_NUMBER, TEST_INVOICE_DATE, [invoiced_item]
+        )
+
+    assert result["header"]["currency"]["exchangeRates"] == {}
+    assert caplog.messages[0] == "download error on BNR fx-rates"
+    assert caplog.records[0].exc_info[1] == exception

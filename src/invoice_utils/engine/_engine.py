@@ -116,6 +116,14 @@ class InvoicingEngine:
             ]
         return result
 
+    def _set_currency_info(self, main, rates):
+        currency_info: dict = self.__invoice["header"].get("currency", {})
+        currency_info.update({
+            "main": main,
+            "exchangeRates": rates,
+        })
+        self.__invoice["header"]["currency"] = currency_info
+
     def _process_bnr_rule(self, invoice_date: datetime):
         bnr_rule = next(
             filter(lambda rule: rule.get("type", "") == "bnr-fx-rate", self.__rules),
@@ -123,12 +131,12 @@ class InvoicingEngine:
         )
         if bnr_rule is None:
             return
-        res = requests.get(
-            f"https://bnr.ro/files/xml/years/nbrfxrates{invoice_date.year}.xml",
-            headers={"Accept": "text/xml", "Accept-Encoding": "utf-8"}
-        )
         rates = {}
         try:
+            res = requests.get(
+                f"https://bnr.ro/files/xml/years/nbrfxrates{invoice_date.year}.xml",
+                headers={"Accept": "text/xml", "Accept-Encoding": "utf-8"}
+            )
             root = ET.fromstring(res.text)
             invoice_date_str = invoice_date.strftime("%Y-%m-%d")
             date_rates = None
@@ -142,13 +150,10 @@ class InvoicingEngine:
                     rates[currency] = Decimal(rate.text)
         except ET.ParseError:
             self._log.warning("invalid XML downloaded from BNR")
-
-        currency_info: dict = self.__invoice["header"].get("currency", {})
-        currency_info.update({
-            "main": "RON",
-            "exchangeRates": rates
-        })
-        self.__invoice["header"]["currency"] = currency_info
+        except Exception as exc:
+            self._log.error("download error on BNR fx-rates", exc_info=exc)
+        finally:
+            self._set_currency_info("RON", rates)
 
     def _process_currency(self):
         rule = next(
@@ -163,12 +168,7 @@ class InvoicingEngine:
             currency.get("symbol", f"currency-{index}"): currency.get("rate", 1.0)
             for index, currency in enumerate(secondary_currencies)
         }
-        currency_info: dict = self.__invoice["header"].get("currency", {})
-        currency_info.update({
-            "main": main_currency,
-            "exchangeRates": exchange_rates,
-        })
-        self.__invoice["header"]["currency"] = currency_info
+        self._set_currency_info(main_currency, exchange_rates)
 
     def process(
         self, invoice_no: int, invoice_date: datetime, items: list[InvoicedItem] = None
