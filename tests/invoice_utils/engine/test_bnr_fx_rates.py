@@ -36,11 +36,16 @@ def engine(bnr_sample_path, data_dir, request):
 
 
 @pytest.fixture
-def bnr_res(responses, read_text):
+def bnr_res(responses, read_text, request):
+    file_name = (
+        "bnr-response-1-item.xml"
+        if not hasattr(request, "param") or request.param is None
+        else request.param
+    )
     return responses.get(
         f"https://bnr.ro/files/xml/years/nbrfxrates{TEST_INVOICE_DATE.year}.xml",
         content_type="text/xml",
-        body=read_text("bnr-response-1-item.xml")
+        body=read_text(file_name)
     )
 
 
@@ -89,3 +94,16 @@ def test_engine_bnr_rule_adds_exchange_rates_for_symbols(engine, invoiced_item, 
     rates = result["header"]["currency"]["exchangeRates"]
     assert rates["EUR"] == Decimal("4.9273")
     assert rates["USD"] == Decimal("4.6766")
+
+
+@pytest.mark.parametrize("bnr_res", ["bnr-response-invalid.xml"], indirect=["bnr_res"])
+def test_engine_bnr_rule_invalid_xml_response_logs_warning(
+    engine, invoiced_item, bnr_res, caplog
+):
+    with caplog.at_level("WARNING"):
+        result = engine.process(
+            TEST_INVOICE_NUMBER, TEST_INVOICE_DATE, [invoiced_item]
+        )
+
+    assert result["header"]["currency"]["exchangeRates"] == {}
+    assert caplog.messages[0] == "invalid XML downloaded from BNR"

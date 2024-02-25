@@ -1,9 +1,10 @@
 import json
 import pathlib
-from xml.etree import ElementTree as ET
 from datetime import datetime
 from decimal import Decimal
 from json import JSONDecodeError
+from logging import getLogger
+from xml.etree import ElementTree as ET
 
 import requests
 
@@ -13,6 +14,7 @@ from invoice_utils.engine._errors import InvoicingInputError, InvoicingInputForm
 
 class InvoicingEngine:
     def __init__(self, file_name: str):
+        self._log = getLogger(self.__class__.__name__)
         if not file_name:
             raise InvoicingInputError(file_name)
         fpath = pathlib.Path(file_name)
@@ -125,18 +127,22 @@ class InvoicingEngine:
             f"https://bnr.ro/files/xml/years/nbrfxrates{invoice_date.year}.xml",
             headers={"Accept": "text/xml", "Accept-Encoding": "utf-8"}
         )
-        root = ET.fromstring(res.text)
-        invoice_date_str = invoice_date.strftime("%Y-%m-%d")
-        date_rates = None
-        for cube_node in root.findall(".//{http://www.bnr.ro/xsd}Cube"):
-            if cube_node.attrib["date"] == invoice_date_str:
-                date_rates = cube_node
         rates = {}
-        symbols = set(bnr_rule.get("symbols", []))
-        for rate in date_rates.findall("{http://www.bnr.ro/xsd}Rate"):
-            currency = rate.attrib["currency"]
-            if currency in symbols:
-                rates[currency] = Decimal(rate.text)
+        try:
+            root = ET.fromstring(res.text)
+            invoice_date_str = invoice_date.strftime("%Y-%m-%d")
+            date_rates = None
+            for cube_node in root.findall(".//{http://www.bnr.ro/xsd}Cube"):
+                if cube_node.attrib["date"] == invoice_date_str:
+                    date_rates = cube_node
+            symbols = set(bnr_rule.get("symbols", []))
+            for rate in date_rates.findall("{http://www.bnr.ro/xsd}Rate"):
+                currency = rate.attrib["currency"]
+                if currency in symbols:
+                    rates[currency] = Decimal(rate.text)
+        except ET.ParseError:
+            self._log.warning("invalid XML downloaded from BNR")
+
         currency_info: dict = self.__invoice["header"].get("currency", {})
         currency_info.update({
             "main": "RON",
