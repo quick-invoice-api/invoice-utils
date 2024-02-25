@@ -146,6 +146,10 @@ class InvoicingEngine:
             for cube_node in root.findall(".//{http://www.bnr.ro/xsd}Cube"):
                 if cube_node.attrib["date"] == invoice_date_str:
                     date_rates = cube_node
+            if date_rates is None:
+                self._log.info("can't find BNR fx rates for %s", invoice_date_str)
+                return
+
             symbols = set(bnr_rule.get("symbols", []))
             for rate in date_rates.findall("{http://www.bnr.ro/xsd}Rate"):
                 currency = rate.attrib["currency"]

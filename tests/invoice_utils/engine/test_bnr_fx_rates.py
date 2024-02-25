@@ -125,3 +125,19 @@ def test_engine_bnr_not_accessible_logs_error(
     assert result["header"]["currency"]["exchangeRates"] == {}
     assert caplog.messages[0] == "download error on BNR fx-rates"
     assert caplog.records[0].exc_info[1] == exception
+
+
+@pytest.mark.parametrize(
+    "invoice_date", [
+        datetime(2011, 11, 10),
+        datetime(2011, 11, 9),
+        datetime(2011, 11, 8),
+        datetime(2011, 11, 7),
+    ]
+)
+def test_engine_bnr_invoice_date_is_not_found(engine, invoiced_item, bnr_res, invoice_date, caplog):
+    with caplog.at_level("INFO"):
+        result = engine.process(TEST_INVOICE_NUMBER, invoice_date, [invoiced_item])
+
+    assert result["header"]["currency"]["exchangeRates"] == {}
+    assert caplog.messages[0] == f"can't find BNR fx rates for {invoice_date.strftime('%Y-%m-%d')}"
