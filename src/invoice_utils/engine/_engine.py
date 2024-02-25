@@ -26,6 +26,9 @@ class InvoicingEngine:
         except JSONDecodeError as ex:
             raise InvoicingInputFormatError(fpath.name) from ex
 
+        self.__init_invoice()
+
+    def __init_invoice(self):
         self.__invoice = {
             "header": {"buyer": {}, "currency": {}, "seller": {}},
             "items": [],
@@ -180,6 +183,7 @@ class InvoicingEngine:
     def process(
         self, invoice_no: int, invoice_date: datetime, items: list[InvoicedItem] = None
     ):
+        self.__init_invoice()
         items = items or []
         header = self.__invoice["header"]
         header["number"] = invoice_no
