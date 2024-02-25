@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 from invoice_utils.dal import Template, Repository
-import invoice_utils.di as di
+import invoice_utils.depends as di
 
 
 @pytest.fixture(scope="session")

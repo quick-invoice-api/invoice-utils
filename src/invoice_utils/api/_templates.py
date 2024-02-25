@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel
 
 from invoice_utils.dal import Repository, Template
-import invoice_utils.di as di
+import invoice_utils.depends as di
 
 from ._request import TemplateRequestBody
 from ._response import ListResponse, TemplateResponse
