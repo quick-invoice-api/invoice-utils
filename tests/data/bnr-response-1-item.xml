@@ -9,7 +9,7 @@
     <Body>
         <Subject>Reference rates</Subject>
         <OrigCurrency>RON</OrigCurrency>
-        <Cube date="2023-01-03">
+        <Cube date="2011-11-11">
             <Rate currency="AED">1.2733</Rate>
             <Rate currency="AUD">3.1363</Rate>
             <Rate currency="BGN">2.5193</Rate>

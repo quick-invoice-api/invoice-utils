@@ -76,3 +76,14 @@ def test_engine_bnr_rule_no_symbols_no_exchange_rates(engine, invoiced_item, bnr
 
     assert result["header"]["currency"]["main"] == "RON"
     assert result["header"]["currency"]["exchangeRates"] == {}
+
+
+def test_engine_bnr_rule_adds_exchange_rates_for_symbols(engine, invoiced_item, bnr_res):
+    result = engine.process(
+        TEST_INVOICE_NUMBER, TEST_INVOICE_DATE, [invoiced_item]
+    )
+
+    assert len(result["header"]["currency"]["exchangeRates"]) == 2
+    rates = result["header"]["currency"]["exchangeRates"]
+    assert rates["EUR"] == Decimal("4.9273")
+    assert rates["USD"] == Decimal("4.6766")
