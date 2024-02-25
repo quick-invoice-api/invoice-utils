@@ -7,6 +7,10 @@ from invoice_utils.engine import InvoicingEngine
 from invoice_utils.models import InvoicedItem
 
 
+TEST_INVOICE_NUMBER = 11
+TEST_INVOICE_DATE = datetime(2011, 11, 11)
+
+
 @pytest.fixture
 def invoiced_item():
     return InvoicedItem(
@@ -14,11 +18,6 @@ def invoiced_item():
         quantity=Decimal("1.0"),
         unit_price=Decimal("100.0")
     )
-
-
-@pytest.fixture
-def invoice_date():
-    return datetime(2011, 11, 11)
 
 
 @pytest.fixture
@@ -36,26 +35,34 @@ def engine(bnr_sample_path, data_dir, request):
     return InvoicingEngine(file_path)
 
 
-def test_engine_calls_bnr_for_invoice_date(
-    engine, invoice_date, invoiced_item, responses, read_text
-):
-    bnr_resp = responses.get(
-        "https://bnr.ro/files/xml/years/nbrfxrates2011.xml",
+@pytest.fixture
+def bnr_res(responses, read_text):
+    return responses.get(
+        f"https://bnr.ro/files/xml/years/nbrfxrates{TEST_INVOICE_DATE.year}.xml",
         content_type="text/xml",
         body=read_text("bnr-response-1-item.xml")
     )
-    engine.process(12, invoice_date, [invoiced_item])
 
-    assert bnr_resp.call_count == 1
-    assert bnr_resp.status == 200
+
+def test_engine_calls_bnr_for_invoice_date(engine, invoiced_item, bnr_res):
+    engine.process(TEST_INVOICE_NUMBER, TEST_INVOICE_DATE, [invoiced_item])
+
+    assert bnr_res.call_count == 1
+    assert bnr_res.status == 200
 
 
 @pytest.mark.parametrize("engine", ["empty.json"], indirect=["engine"])
-def test_engine_does_not_call_bnr(
-    engine, invoice_date, invoiced_item, responses, read_text
-):
-    engine.process(12, invoice_date, [invoiced_item])
+def test_engine_does_not_call_bnr(engine, invoiced_item, responses):
+    engine.process(TEST_INVOICE_NUMBER, TEST_INVOICE_DATE, [invoiced_item])
 
     assert responses.assert_call_count(
         "https://bnr.ro/files/xml/years/nbrfxrates2011.xml", 0
     ) is True
+
+
+def test_engine_with_bnr_rule_makes_ron_the_main_currency(engine, invoiced_item, bnr_res):
+    result = engine.process(
+        TEST_INVOICE_NUMBER, TEST_INVOICE_DATE, [invoiced_item]
+    )
+
+    assert result["header"]["currency"]["main"] == "RON"

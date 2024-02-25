@@ -114,7 +114,7 @@ class InvoicingEngine:
             ]
         return result
 
-    def _process_bnr_rule(self, invoice_date: datetime) -> dict:
+    def _process_bnr_rule(self, invoice_date: datetime):
         bnr_rule = next(
             filter(lambda rule: rule.get("type", "") == "bnr-fx-rate", self.__rules),
             None
@@ -125,12 +125,11 @@ class InvoicingEngine:
             f"https://bnr.ro/files/xml/years/nbrfxrates{invoice_date.year}.xml",
             headers={"Accept": "text/xml", "Accept-Encoding": "utf-8"}
         )
-        return {
+        currency_info: dict = self.__invoice["header"].get("currency", {})
+        currency_info.update({
             "main": "RON",
-            "exchangeRates": {
-
-            }
-        }
+        })
+        self.__invoice["header"]["currency"] = currency_info
 
     def _process_currency(self):
         rule = next(
