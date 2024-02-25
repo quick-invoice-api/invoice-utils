@@ -66,3 +66,13 @@ def test_engine_with_bnr_rule_makes_ron_the_main_currency(engine, invoiced_item,
     )
 
     assert result["header"]["currency"]["main"] == "RON"
+
+
+@pytest.mark.parametrize("engine", ["bnr-sample-no-symbols.json"], indirect=["engine"])
+def test_engine_bnr_rule_no_symbols_no_exchange_rates(engine, invoiced_item, bnr_res):
+    result = engine.process(
+        TEST_INVOICE_NUMBER, TEST_INVOICE_DATE, [invoiced_item]
+    )
+
+    assert result["header"]["currency"]["main"] == "RON"
+    assert result["header"]["currency"]["exchangeRates"] == {}

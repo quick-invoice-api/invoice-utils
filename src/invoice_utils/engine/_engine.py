@@ -128,6 +128,7 @@ class InvoicingEngine:
         currency_info: dict = self.__invoice["header"].get("currency", {})
         currency_info.update({
             "main": "RON",
+            "exchangeRates": {}
         })
         self.__invoice["header"]["currency"] = currency_info
 
