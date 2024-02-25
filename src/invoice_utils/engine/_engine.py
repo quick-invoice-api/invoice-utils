@@ -1,8 +1,11 @@
 import json
 import pathlib
+from xml.etree import ElementTree as ET
 from datetime import datetime
 from decimal import Decimal
 from json import JSONDecodeError
+
+import requests
 
 from invoice_utils.models import InvoicedItem
 from invoice_utils.engine._errors import InvoicingInputError, InvoicingInputFormatError
@@ -77,7 +80,7 @@ class InvoicingEngine:
         items.append(
             {
                 "item_no": item_no,
-                "currency": currency_info["main"],
+                "currency": currency_info.get("main", ""),
                 "text": item.text,
                 "quantity": qty,
                 "unit_price": unit_price,
@@ -111,6 +114,44 @@ class InvoicingEngine:
             ]
         return result
 
+    def _process_bnr_rule(self, invoice_date: datetime) -> dict:
+        bnr_rule = next(
+            filter(lambda rule: rule.get("type", "") == "bnr-fx-rate", self.__rules),
+            None
+        )
+        if bnr_rule is None:
+            return {}
+        res = requests.get(
+            f"https://bnr.ro/files/xml/years/nbrfxrates{invoice_date.year}.xml",
+            headers={"Accept": "text/xml", "Accept-Encoding": "utf-8"}
+        )
+        return {
+            "main": "RON",
+            "exchangeRates": {
+
+            }
+        }
+
+    def _process_currency(self):
+        rule = next(
+            filter(lambda r: r.get("type") == "currency", self.__rules), None
+        )
+        if rule is None:
+            return
+
+        main_currency = rule.get("main", {}).get("symbol", "")
+        secondary_currencies = rule.get("secondary", [])
+        exchange_rates = {
+            currency.get("symbol", f"currency-{index}"): currency.get("rate", 1.0)
+            for index, currency in enumerate(secondary_currencies)
+        }
+        currency_info: dict = self.__invoice["header"].get("currency", {})
+        currency_info.update({
+            "main": main_currency,
+            "exchangeRates": exchange_rates,
+        })
+        self.__invoice["header"]["currency"] = currency_info
+
     def process(
         self, invoice_no: int, invoice_date: datetime, items: list[InvoicedItem] = None
     ):
@@ -124,22 +165,9 @@ class InvoicingEngine:
         ]
         header["buyer"] = header_rules[0]["buyer"] if len(header_rules) > 0 else {}
         header["seller"] = header_rules[0]["seller"] if len(header_rules) > 0 else {}
+        self._process_currency()
+        self._process_bnr_rule(invoice_date)
 
-        currency_rules = [
-            rule for rule in self.__rules if rule.get("type", "") == "currency"
-        ]
-        if len(currency_rules) > 0:
-            rule = currency_rules[0]
-            main_currency = rule.get("main", {}).get("symbol", "")
-            secondary_currencies = rule.get("secondary", [])
-            exchange_rates = {
-                currency.get("symbol", f"currency-{index}"): currency.get("rate", 1.0)
-                for index, currency in enumerate(secondary_currencies)
-            }
-            header["currency"] = {
-                "main": main_currency,
-                "exchangeRates": exchange_rates,
-            }
         for index, item in enumerate(items):
             vat = round(Decimal(0.19) * Decimal(item.unit_price) * Decimal(item.quantity), 6)
             self._process_item(index + 1, vat, item)
