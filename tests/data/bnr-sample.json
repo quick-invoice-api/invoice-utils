@@ -1,6 +1,6 @@
 [
   {
     "type": "bnr-fx-rate",
-    "symbols": ["EUR", "USD"]
+    "symbol": "EUR"
   }
 ]

@@ -65,18 +65,18 @@ def test_engine_does_not_call_bnr(engine, invoiced_item, responses):
     ) is True
 
 
-def test_engine_with_bnr_rule_makes_ron_the_main_currency(engine, invoiced_item, bnr_res):
+def test_engine_with_bnr_rule_makes_sets_specified_main_currency(engine, invoiced_item, bnr_res):
     result = engine.process(
         TEST_INVOICE_NUMBER, TEST_INVOICE_DATE, [invoiced_item]
     )
 
-    assert result["header"]["currency"]["main"] == "RON"
+    assert result["header"]["currency"]["main"] == "EUR"
 
 
 @pytest.mark.parametrize(
     "engine", ["bnr-sample-no-symbols.json", "bnr-sample-missing-symbols.json"], indirect=["engine"]
 )
-def test_engine_bnr_rule_no_symbols_no_exchange_rates(engine, invoiced_item, bnr_res):
+def test_engine_bnr_rule_no_main_symbol_no_exchange_rates(engine, invoiced_item, bnr_res):
     result = engine.process(
         TEST_INVOICE_NUMBER, TEST_INVOICE_DATE, [invoiced_item]
     )
@@ -93,10 +93,9 @@ def test_engine_bnr_rule_adds_exchange_rates_for_symbols(engine, invoiced_item, 
         TEST_INVOICE_NUMBER, invoice_date, [invoiced_item]
     )
 
-    assert len(result["header"]["currency"]["exchangeRates"]) == 2
+    assert len(result["header"]["currency"]["exchangeRates"]) == 1
     rates = result["header"]["currency"]["exchangeRates"]
-    assert rates["EUR"] == Decimal("4.9273")
-    assert rates["USD"] == Decimal("4.6766")
+    assert rates["RON"] == Decimal("4.9273")
 
 
 @pytest.mark.parametrize("bnr_res", ["bnr-response-invalid.xml"], indirect=["bnr_res"])

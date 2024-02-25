@@ -132,6 +132,7 @@ class InvoicingEngine:
         if bnr_rule is None:
             return
         rates = {}
+        symbol = bnr_rule.get("symbol", "RON")
         try:
             res = requests.get(
                 f"https://bnr.ro/files/xml/years/nbrfxrates{invoice_date.year}.xml",
@@ -150,17 +151,16 @@ class InvoicingEngine:
                 self._log.info("can't find BNR fx rates for %s", invoice_date_str)
                 return
 
-            symbols = set(bnr_rule.get("symbols", []))
             for rate in date_rates.findall("{http://www.bnr.ro/xsd}Rate"):
                 currency = rate.attrib["currency"]
-                if currency in symbols:
-                    rates[currency] = Decimal(rate.text)
+                if currency == symbol:
+                    rates["RON"] = Decimal(rate.text)
         except ET.ParseError:
             self._log.warning("invalid XML downloaded from BNR")
         except Exception as exc:
             self._log.error("download error on BNR fx-rates", exc_info=exc)
         finally:
-            self._set_currency_info("RON", rates)
+            self._set_currency_info(symbol, rates)
 
     def _process_currency(self):
         rule = next(
