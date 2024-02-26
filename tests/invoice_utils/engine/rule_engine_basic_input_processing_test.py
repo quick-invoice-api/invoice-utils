@@ -5,13 +5,11 @@ from invoice_utils.engine import *
 from invoice_utils.models import *
 
 
-def test_process_empty_input_data_outputs_base_invoice_document_structure(
-        resolve_path,
-):
+def test_process_empty_input_data_outputs_base_invoice_document_structure():
     expected_invoice_no = 1
     expected_invoice_date = datetime(2022, 1, 15, 13, 14, 15)
 
-    output = InvoicingEngine([{}]).process(
+    output = InvoicingEngine([]).process(
         expected_invoice_no, expected_invoice_date
     )
 
