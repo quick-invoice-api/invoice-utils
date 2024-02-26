@@ -1,3 +1,4 @@
+import json
 import os.path
 import smtplib
 from datetime import datetime
@@ -96,7 +97,10 @@ def email_error_handler(request: InvoiceRequest, exc: InvoiceRequestEmailError):
 def generate_invoice(request: InvoiceRequest):
     root_dir = Path(__file__).parent
     basic_rules = str(root_dir / "basic.json")
-    engine = InvoicingEngine()
+    # TODO: Fix in phase 2 by using repository
+    with open(basic_rules, "r") as file:
+        rules = json.loads(file.read())
+    engine = InvoicingEngine(rules)
     context = engine.process(
         int(request.header.number), request.header.timestamp, request.items
     )

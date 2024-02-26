@@ -14,9 +14,9 @@ from ._header import HeaderRule
 
 
 class InvoicingEngine:
-    def __init__(self, rules: Optional[list[dict]] = None):
+    def __init__(self, rules: list[dict]):
         self._log = getLogger(self.__class__.__name__)
-        self.__rules: list[dict] = rules if rules else self.__set_default_rules()
+        self.__rules = rules if rules else self.__set_default_rules()
         self.__init_invoice()
 
     def __init_invoice(self):
