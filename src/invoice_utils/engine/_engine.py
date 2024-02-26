@@ -16,7 +16,7 @@ from ._header import HeaderRule
 class InvoicingEngine:
     def __init__(self, rules: list[dict]):
         self._log = getLogger(self.__class__.__name__)
-        self.__rules = rules if rules else self.__set_default_rules()
+        self.__rules = rules
         self.__init_invoice()
 
     def __init_invoice(self):
@@ -24,17 +24,6 @@ class InvoicingEngine:
             "items": [],
             "totals": {"price": 0, "total": 0, "extra": {}},
         }
-
-    @staticmethod
-    def __set_default_rules():
-        fpath = pathlib.Path(__file__).parent.parent / "basic.json"
-        if not fpath.exists():
-            raise InvoicingInputError("basic.json")
-
-        try:
-            return json.loads(fpath.read_bytes())
-        except JSONDecodeError as ex:
-            raise InvoicingInputFormatError(fpath.name) from ex
 
     def _process_item(self, item_no: int, item_tax: Decimal, item: InvoicedItem):
         items = self.__invoice.get("items", [])

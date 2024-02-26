@@ -96,10 +96,7 @@ def email_error_handler(request: InvoiceRequest, exc: InvoiceRequestEmailError):
 @app.post("/invoice", status_code=201)
 def generate_invoice(request: InvoiceRequest):
     root_dir = Path(__file__).parent
-    basic_rules = str(root_dir / "basic.json")
-    # TODO: Fix in phase 2 by using repository
-    with open(basic_rules, "r") as file:
-        rules = json.loads(file.read())
+    rules = _get_default_rules(root_dir)
     engine = InvoicingEngine(rules)
     context = engine.process(
         int(request.header.number), request.header.timestamp, request.items
@@ -107,6 +104,13 @@ def generate_invoice(request: InvoiceRequest):
     invoice_content, invoice_path = _render_invoice(context, request, root_dir)
     _send_mail(request, invoice_content, invoice_path)
     return context
+
+
+def _get_default_rules(root_dir):
+    basic_rules = root_dir / "basic.json"
+    # TODO: Change this in phase 2 by using repository
+    rules = json.loads(basic_rules.read_bytes())
+    return rules
 
 
 def _render_invoice(context, request, root_dir):
