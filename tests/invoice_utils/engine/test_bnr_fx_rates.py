@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -26,13 +27,14 @@ def bnr_sample_path(data_dir):
 
 
 @pytest.fixture
-def engine(bnr_sample_path, data_dir, request):
+def engine(bnr_sample_path, data_dir, request, read_text):
     file_path = (
         bnr_sample_path
         if not hasattr(request, "param") or request.param is None
         else str(data_dir / request.param)
     )
-    return InvoicingEngine(file_path)
+    rules = json.loads(read_text(file_path))
+    return InvoicingEngine(rules)
 
 
 @pytest.fixture

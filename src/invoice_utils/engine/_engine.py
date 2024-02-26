@@ -4,6 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from json import JSONDecodeError
 from logging import getLogger
+from typing import Optional
 
 from invoice_utils.models import InvoicedItem
 from invoice_utils.engine._errors import InvoicingInputError, InvoicingInputFormatError
@@ -11,20 +12,11 @@ from invoice_utils.engine._errors import InvoicingInputError, InvoicingInputForm
 from ._currency import BnrFxRateRule, CurrencyRule
 from ._header import HeaderRule
 
+
 class InvoicingEngine:
-    def __init__(self, file_name: str):
+    def __init__(self, rules: Optional[list[dict]] = None):
         self._log = getLogger(self.__class__.__name__)
-        if not file_name:
-            raise InvoicingInputError(file_name)
-        fpath = pathlib.Path(file_name)
-        if not fpath.exists():
-            raise InvoicingInputError(file_name)
-
-        try:
-            self.__rules: list[dict] = json.loads(fpath.read_bytes())
-        except JSONDecodeError as ex:
-            raise InvoicingInputFormatError(fpath.name) from ex
-
+        self.__rules: list[dict] = rules if rules else self.__set_default_rules()
         self.__init_invoice()
 
     def __init_invoice(self):
@@ -32,6 +24,17 @@ class InvoicingEngine:
             "items": [],
             "totals": {"price": 0, "total": 0, "extra": {}},
         }
+
+    @staticmethod
+    def __set_default_rules():
+        fpath = pathlib.Path(__file__).parent.parent / "basic.json"
+        if not fpath.exists():
+            raise InvoicingInputError("basic.json")
+
+        try:
+            return json.loads(fpath.read_bytes())
+        except JSONDecodeError as ex:
+            raise InvoicingInputFormatError(fpath.name) from ex
 
     def _process_item(self, item_no: int, item_tax: Decimal, item: InvoicedItem):
         items = self.__invoice.get("items", [])
@@ -57,6 +60,7 @@ class InvoicingEngine:
                     "name": name,
                     "value": round(val + item_price, 6)
                 })
+        # TODO: This line overwrites the item_tax mandatory parameter received
         item_tax = round(sum(Decimal(tax["value"]) for tax in taxes), 6)
         extra_currencies = []
         for currency, rate in currency_info.get("exchangeRates", {}).items():

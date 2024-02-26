@@ -5,8 +5,8 @@ from invoice_utils.engine import InvoicingEngine
 from invoice_utils.models import InvoicedItem
 
 
-def test_process_tax_rule(resolve_path):
-    engine = InvoicingEngine(resolve_path("basic.json"))
+def test_process_tax_rule(test_basic_rules):
+    engine = InvoicingEngine(test_basic_rules)
 
     output = engine.process(
         1, datetime.now(), [InvoicedItem("test", Decimal(2), Decimal(5))]

@@ -96,7 +96,7 @@ def email_error_handler(request: InvoiceRequest, exc: InvoiceRequestEmailError):
 def generate_invoice(request: InvoiceRequest):
     root_dir = Path(__file__).parent
     basic_rules = str(root_dir / "basic.json")
-    engine = InvoicingEngine(basic_rules)
+    engine = InvoicingEngine()
     context = engine.process(
         int(request.header.number), request.header.timestamp, request.items
     )

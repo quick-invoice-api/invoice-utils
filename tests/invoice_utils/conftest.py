@@ -33,6 +33,11 @@ def read_text(resolve_path):
     return f
 
 
+@pytest.fixture
+def test_basic_rules(read_text):
+    return json.loads(read_text("basic.json"))
+
+
 @pytest.fixture()
 def environment(monkeypatch, request):
     if hasattr(request, "param"):
