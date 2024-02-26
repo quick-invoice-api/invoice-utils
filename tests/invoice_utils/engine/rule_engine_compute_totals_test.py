@@ -5,8 +5,8 @@ from invoice_utils.engine import InvoicingEngine
 from invoice_utils.models import InvoicedItem
 
 
-def test_process_computes_totals(test_basic_rules):
-    engine = InvoicingEngine(test_basic_rules)
+def test_process_computes_totals(basic_rules):
+    engine = InvoicingEngine(basic_rules)
 
     output = engine.process(
         1, datetime.now(), [InvoicedItem("test", Decimal(2), Decimal(5))]

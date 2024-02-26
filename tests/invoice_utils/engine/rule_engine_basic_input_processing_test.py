@@ -29,12 +29,12 @@ def test_process_empty_input_data_outputs_base_invoice_document_structure(
 
 
 def test_process_header_rule_outputs_correct_buyer_and_seller_information(
-    test_basic_rules
+        basic_rules
 ):
     expected_invoice_no = 1
     expected_invoice_date = datetime(2022, 1, 15, 13, 14, 15)
 
-    output = InvoicingEngine(test_basic_rules).process(
+    output = InvoicingEngine(basic_rules).process(
         expected_invoice_no, expected_invoice_date
     )
 
@@ -50,8 +50,8 @@ def test_process_header_rule_outputs_correct_buyer_and_seller_information(
     }
 
 
-def test_process_currency_rule_outputs_currency_in_invoice_header(test_basic_rules):
-    output = InvoicingEngine(test_basic_rules).process(
+def test_process_currency_rule_outputs_currency_in_invoice_header(basic_rules):
+    output = InvoicingEngine(basic_rules).process(
         1, datetime(2022, 1, 15, 13, 14, 15)
     )
 
@@ -61,10 +61,10 @@ def test_process_currency_rule_outputs_currency_in_invoice_header(test_basic_rul
     }
 
 
-def test_process_one_item_computes_item_price_correctly(test_basic_rules):
+def test_process_one_item_computes_item_price_correctly(basic_rules):
     item = InvoicedItem(text="test item", quantity=2.71828182, unit_price=3.14159265)
 
-    output = InvoicingEngine(test_basic_rules).process(
+    output = InvoicingEngine(basic_rules).process(
         1, datetime(2022, 1, 15, 13, 14, 15), [item]
     )
 
@@ -77,10 +77,10 @@ def test_process_one_item_computes_item_price_correctly(test_basic_rules):
     assert output["items"][0]["item_price"] == Decimal("8.539736")
 
 
-def test_process_one_item_computes_extra_currencies(test_basic_rules):
+def test_process_one_item_computes_extra_currencies(basic_rules):
     item = InvoicedItem(text="test item", quantity=2.71828182, unit_price=3.14159265)
 
-    output = InvoicingEngine(test_basic_rules).process(
+    output = InvoicingEngine(basic_rules).process(
         1, datetime(2022, 1, 15, 13, 14, 15), [item]
     )
 

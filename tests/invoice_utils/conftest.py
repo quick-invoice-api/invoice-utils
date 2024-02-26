@@ -34,7 +34,7 @@ def read_text(resolve_path):
 
 
 @pytest.fixture
-def test_basic_rules(read_text):
+def basic_rules(read_text):
     return json.loads(read_text("basic.json"))
 
 
