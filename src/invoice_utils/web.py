@@ -111,7 +111,6 @@ def email_error_handler(request: InvoiceRequest, exc: InvoiceRequestEmailError):
 
 @app.post("/invoice", status_code=201)
 def generate_invoice(request: InvoiceRequest, repo: Repository[str, Template] = Depends(di.template_repo)):
-    root_dir = Path(__file__).parent
     found, rule_template = repo.get_by_key(config.INVOICE_UTILS_RULE_TEMPLATE_NAME)
     if request.rule_template_name:
         found, rule_template = repo.get_by_key(request.rule_template_name)
@@ -122,12 +121,13 @@ def generate_invoice(request: InvoiceRequest, repo: Repository[str, Template] = 
     context = engine.process(
         int(request.header.number), request.header.timestamp, request.items
     )
-    invoice_content, invoice_path = _render_invoice(context, request, root_dir)
+    invoice_content, invoice_path = _render_invoice(context, request)
     _send_mail(request, invoice_content, invoice_path)
     return context
 
 
-def _render_invoice(context, request, root_dir):
+def _render_invoice(context, request):
+    root_dir = Path(__file__).parent
     renderer = PdfInvoiceRenderer("invoice")
     invoice_name = f"{request.header.timestamp:%Y%m%d}-{int(request.header.number):04}-invoice.pdf"
     invoice_path = root_dir / config.INVOICE_UTILS_INVOICE_DIR / invoice_name
