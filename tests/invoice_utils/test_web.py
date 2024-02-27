@@ -331,7 +331,7 @@ def test_template_related_variables_with_bad_inputs_raise_errors(
     "environment",
     [
         ({"INVOICE_UTILS_INVOICE_DIR": "bad_directory"}),
-        ({"INVOICE_UTILS_DEFAULT_RULE_TEMPLATE_NAME": "bad_name.json"})
+        ({"INVOICE_UTILS_RULE_TEMPLATE_NAME": "bad_name.json"})
     ],
     indirect=["environment"]
 )

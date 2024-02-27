@@ -95,10 +95,10 @@ def email_error_handler(request: InvoiceRequest, exc: InvoiceRequestEmailError):
 
 @app.on_event("startup")
 def startup_event():
-    if not Path(config.INVOICE_UTILS_DEFAULT_RULE_TEMPLATE).exists():
+    if not Path(config.INVOICE_UTILS_RULE_TEMPLATE).exists():
         raise HTTPException(
             status_code=500,
-            detail=f"Default rule template '{config.INVOICE_UTILS_DEFAULT_RULE_TEMPLATE}' does not exist"
+            detail=f"Default rule template '{config.INVOICE_UTILS_RULE_TEMPLATE}' does not exist"
         )
 
 
@@ -117,7 +117,6 @@ def generate_invoice(request: InvoiceRequest):
 
 def _get_default_rules(root_dir):
     basic_rules = root_dir / "basic.json"
-    # TODO: Change this in phase 2 by using repository
     rules = json.loads(basic_rules.read_bytes())
     return rules
 

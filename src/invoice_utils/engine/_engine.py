@@ -44,7 +44,6 @@ class InvoicingEngine:
                     "name": name,
                     "value": round(val + item_price, 6)
                 })
-        # TODO: This line overwrites the item_tax mandatory parameter received
         item_tax = round(sum(Decimal(tax["value"]) for tax in taxes), 6)
         extra_currencies = []
         for currency, rate in currency_info.get("exchangeRates", {}).items():
