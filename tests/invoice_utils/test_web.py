@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from jinja2 import TemplateNotFound
 
 from invoice_utils.config import DEFAULT_MAIL_SUBJECT, DEFAULT_BODY_TEMPLATE_NAME, DEFAULT_BODY_TEMPLATE_PACKAGE, \
-    DEFAULT_BODY_TEMPLATE_DIRECTORY, DEFAULT_INVOICE_DIR
+    DEFAULT_TEMPLATES_DIRECTORY, DEFAULT_INVOICE_DIR, DEFAULT_RULE_TEMPLATE_NAME
 
 MESSAGE_ARGUMENT = 2
 
@@ -307,7 +307,7 @@ def test_render_body_is_called_with_default_values(
     http.post("/invoice", json=email_invoice_request_body)
 
     assert mock_env.call_args.kwargs["loader"].package_name == DEFAULT_BODY_TEMPLATE_PACKAGE
-    assert mock_env.call_args.kwargs["loader"].package_path == DEFAULT_BODY_TEMPLATE_DIRECTORY
+    assert mock_env.call_args.kwargs["loader"].package_path == DEFAULT_TEMPLATES_DIRECTORY
     assert DEFAULT_BODY_TEMPLATE_NAME in mock_env.return_value.get_template.call_args.args
 
 
@@ -330,19 +330,100 @@ def test_template_related_variables_with_bad_inputs_raise_errors(
 @pytest.mark.parametrize(
     "environment",
     [
-        ({"INVOICE_UTILS_INVOICE_DIR": "bad_directory"}),
-        ({"INVOICE_UTILS_RULE_TEMPLATE_NAME": "bad_name.json"})
+        {"INVOICE_UTILS_RULE_TEMPLATE_NAME": "not-exist"}
     ],
     indirect=["environment"]
 )
-def test_app_does_not_start_with_bad_default_rule_template(
-    environment, monkeypatch, template_repo, email_invoice_request_body
+def test_app_lifespan_sets_rule_template_to_default_if_not_exists(
+    environment, http, server, mock_render, email_invoice_request_body
 ):
     with patch("dotenv.load_dotenv", MagicMock(name="load_dotenv")):
         import invoice_utils.web as web
 
-        with pytest.raises(HTTPException) as exc_info:
+        assert web.config.INVOICE_UTILS_RULE_TEMPLATE_NAME == environment.get("INVOICE_UTILS_RULE_TEMPLATE_NAME")
+        with TestClient(web.app) as client:
+            client.post("/invoice", json=email_invoice_request_body)
+        assert web.config.INVOICE_UTILS_RULE_TEMPLATE_NAME == DEFAULT_RULE_TEMPLATE_NAME
+
+
+def test_app_lifespan_raise_exception_if_default_not_exists(
+    http, server, mock_render, email_invoice_request_body
+):
+    with patch("dotenv.load_dotenv", MagicMock(name="load_dotenv")):
+        import invoice_utils.web as web
+
+        web.config.DEFAULT_RULE_TEMPLATE_NAME = "non-exist"
+        with pytest.raises(Exception):
             with TestClient(web.app) as client:
                 client.post("/invoice", json=email_invoice_request_body)
-        assert exc_info.value.status_code == 500
-        assert "does not exist" in exc_info.value.detail
+
+
+def test_generate_invoice_calls_repository_to_get_rules(
+    http, server, mock_render, email_invoice_request_body, template_repo
+):
+    http.post("/invoice", json=email_invoice_request_body)
+
+    assert template_repo.get_by_key.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "environment",
+    [
+        {"INVOICE_UTILS_RULE_TEMPLATE_NAME": "basic"}
+    ],
+    indirect=["environment"]
+)
+def test_repo_get_by_key_is_called_with_env_variable(
+    environment, http, server, mock_render, email_invoice_request_body, template_repo
+):
+    http.post("/invoice", json=email_invoice_request_body)
+
+    assert template_repo.get_by_key.call_args.args[0] == environment.get("INVOICE_UTILS_RULE_TEMPLATE_NAME")
+
+
+def test_repo_get_by_key_called_twice_if_given_rule_template_name(
+    environment, http, server, mock_render, email_invoice_request_body, template_repo
+):
+    email_invoice_request_body["rule_template_name"] = "some_template"
+
+    http.post("/invoice", json=email_invoice_request_body)
+
+    assert template_repo.get_by_key.call_count == 2
+
+
+def test_repo_get_by_key_called_with_given_rule_template_name(
+    environment, http, server, mock_render, email_invoice_request_body, template_repo
+):
+    email_invoice_request_body["rule_template_name"] = "some_template"
+
+    http.post("/invoice", json=email_invoice_request_body)
+
+    assert template_repo.get_by_key.call_args.args[0] == "some_template"
+
+
+def test_repo_get_by_key_overwrites_rules_if_given_valid_rule_template_name(
+    environment, http, server, mock_render, email_invoice_request_body, template_repo
+):
+    email_invoice_request_body["rule_template_name"] = "some_template"
+
+    http.post("/invoice", json=email_invoice_request_body)
+
+    assert template_repo.get_by_key.call_count == 2
+    found, rule_template = template_repo.get_by_key.return_value
+    assert found is True
+    assert rule_template.dict() == {
+        "name": "test-template-1",
+        "rules": []
+    }
+
+
+def test_generate_invoice_raises_error_if_rule_template_name_is_invalid(
+    environment, http, server, mock_render, email_invoice_request_body, template_repo
+):
+    email_invoice_request_body["rule_template_name"] = "some_template"
+    template_repo.get_by_key.return_value = (False, None)
+
+    res = http.post("/invoice", json=email_invoice_request_body)
+
+    assert res.status_code == 400
+    assert res.json() == {"detail": "Rule Template does not exist."}

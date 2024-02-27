@@ -1,9 +1,10 @@
-import json
 import os.path
 import smtplib
+from contextlib import asynccontextmanager
 from datetime import datetime
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
+from http import HTTPStatus
 from os.path import basename
 
 from dotenv import load_dotenv
@@ -13,12 +14,14 @@ from sys import stdout
 from typing import Optional
 from email.mime.text import MIMEText
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from invoice_utils.api import template_router, templates_router
+from invoice_utils.dal import Repository, Template
+import invoice_utils.depends as di
 from invoice_utils.engine import InvoicingEngine
 from invoice_utils.models import InvoicedItem
 load_dotenv()  # Need to do this now for it to work.
@@ -30,9 +33,21 @@ from invoice_utils.render import PdfInvoiceRenderer
 basicConfig(stream=stdout, level=DEBUG)
 log = getLogger("invoice-utils")
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    repo = di.template_repo()
+
+    if not repo.exists(config.DEFAULT_RULE_TEMPLATE_NAME):
+        raise Exception()
+    if not repo.exists(config.INVOICE_UTILS_RULE_TEMPLATE_NAME):
+        config.INVOICE_UTILS_RULE_TEMPLATE_NAME = config.DEFAULT_RULE_TEMPLATE_NAME
+    yield
+
+
 # API setup
 API_PATH_PREFIX = "/api/v1"
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 app.include_router(template_router, prefix=API_PATH_PREFIX)
 app.include_router(templates_router, prefix=API_PATH_PREFIX)
 
@@ -65,6 +80,7 @@ class InvoiceRequest(BaseModel):
     header: InvoiceRequestHeader
     send_mail: bool = False
     address: str = None
+    rule_template_name: str = None
     buyer: InvoiceEntity
     seller: InvoiceEntity
     items: list[InvoicedItem]
@@ -93,19 +109,15 @@ def email_error_handler(request: InvoiceRequest, exc: InvoiceRequestEmailError):
     return JSONResponse(status_code=502, content={"message": f"{exc.message}"})
 
 
-@app.on_event("startup")
-def startup_event():
-    if not Path(config.INVOICE_UTILS_RULE_TEMPLATE).exists():
-        raise HTTPException(
-            status_code=500,
-            detail=f"Default rule template '{config.INVOICE_UTILS_RULE_TEMPLATE}' does not exist"
-        )
-
-
 @app.post("/invoice", status_code=201)
-def generate_invoice(request: InvoiceRequest):
+def generate_invoice(request: InvoiceRequest, repo: Repository[str, Template] = Depends(di.template_repo)):
     root_dir = Path(__file__).parent
-    rules = _get_default_rules(root_dir)
+    found, rule_template = repo.get_by_key(config.INVOICE_UTILS_RULE_TEMPLATE_NAME)
+    if request.rule_template_name:
+        found, rule_template = repo.get_by_key(request.rule_template_name)
+    if not found:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Rule Template does not exist.")
+    rules = rule_template.rules
     engine = InvoicingEngine(rules)
     context = engine.process(
         int(request.header.number), request.header.timestamp, request.items
@@ -113,12 +125,6 @@ def generate_invoice(request: InvoiceRequest):
     invoice_content, invoice_path = _render_invoice(context, request, root_dir)
     _send_mail(request, invoice_content, invoice_path)
     return context
-
-
-def _get_default_rules(root_dir):
-    basic_rules = root_dir / "basic.json"
-    rules = json.loads(basic_rules.read_bytes())
-    return rules
 
 
 def _render_invoice(context, request, root_dir):
