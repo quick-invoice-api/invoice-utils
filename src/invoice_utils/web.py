@@ -93,6 +93,15 @@ def email_error_handler(request: InvoiceRequest, exc: InvoiceRequestEmailError):
     return JSONResponse(status_code=502, content={"message": f"{exc.message}"})
 
 
+@app.on_event("startup")
+def startup_event():
+    if not Path(config.INVOICE_UTILS_DEFAULT_RULE_TEMPLATE).exists():
+        raise HTTPException(
+            status_code=500,
+            detail=f"Default rule template '{config.INVOICE_UTILS_DEFAULT_RULE_TEMPLATE}' does not exist"
+        )
+
+
 @app.post("/invoice", status_code=201)
 def generate_invoice(request: InvoiceRequest):
     root_dir = Path(__file__).parent

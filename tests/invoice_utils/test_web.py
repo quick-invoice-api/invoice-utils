@@ -1,9 +1,8 @@
 import smtplib
-from datetime import datetime
-from importlib import reload
 from unittest.mock import MagicMock, call, ANY, patch
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from jinja2 import TemplateNotFound
 
@@ -326,3 +325,20 @@ def test_template_related_variables_with_bad_inputs_raise_errors(
 ):
     with pytest.raises(expected_error):
         http.post("/invoice", json=email_invoice_request_body)
+
+
+@pytest.mark.parametrize(
+    "environment",
+    [
+        ({"INVOICE_UTILS_INVOICE_DIR": "bad_directory"}),
+        ({"INVOICE_UTILS_DEFAULT_RULE_TEMPLATE_NAME": "bad_name.json"})
+    ],
+    indirect=["environment"]
+)
+def test_app_does_not_start_with_bad_config(environment, monkeypatch, template_repo, email_invoice_request_body):
+    with patch("dotenv.load_dotenv", MagicMock(name="load_dotenv")):
+        import invoice_utils.web as web
+
+        with pytest.raises(HTTPException):
+            with TestClient(web.app) as client:
+                client.post("/invoice", json=email_invoice_request_body)
