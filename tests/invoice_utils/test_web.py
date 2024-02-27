@@ -335,10 +335,14 @@ def test_template_related_variables_with_bad_inputs_raise_errors(
     ],
     indirect=["environment"]
 )
-def test_app_does_not_start_with_bad_config(environment, monkeypatch, template_repo, email_invoice_request_body):
+def test_app_does_not_start_with_bad_default_rule_template(
+    environment, monkeypatch, template_repo, email_invoice_request_body
+):
     with patch("dotenv.load_dotenv", MagicMock(name="load_dotenv")):
         import invoice_utils.web as web
 
-        with pytest.raises(HTTPException):
+        with pytest.raises(HTTPException) as exc_info:
             with TestClient(web.app) as client:
                 client.post("/invoice", json=email_invoice_request_body)
+        assert exc_info.value.status_code == 500
+        assert "does not exist" in exc_info.value.detail
