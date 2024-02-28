@@ -1,0 +1,52 @@
+{
+    "name": "basic",
+    "rules": [
+        {
+            "type": "header",
+            "buyer": {
+                "name": "Invoiced Customer Ltd",
+                "address": "Buyer Street, 10",
+                "adminLocation": "Splitsville, TN, USA",
+                "taxInfo": {
+                    "vatId": "RO22013201",
+                    "registrationNumber": "J312/231/23.12.2011"
+                },
+                "bank": {
+                    "iban": "ABC",
+                    "name": "Buyer Test Bank"
+                }
+            },
+            "seller": {
+                "name": "Invoicing Company Ltd",
+                "address": "Seller's Lane, Building C, Floor 1, Room 433",
+                "adminLocation": "Splitsville, TN, USA",
+                "taxInfo": {
+                    "vatId": "RO22013201",
+                    "registrationNumber": "J312/231/23.12.2011"
+                },
+                "bank": {
+                    "iban": "DEF",
+                    "name": "Seller Test Bank"
+                }
+            }
+        },
+        {
+            "type": "currency",
+            "main": {
+                "symbol": "EUR"
+            },
+            "secondary": [
+                {
+                    "symbol": "RON",
+                    "rate": 4.94
+                }
+            ]
+        },
+        {
+            "type": "item_op",
+            "name": "VAT",
+            "operation": "*",
+            "value": "0.0"
+        }
+    ]
+}

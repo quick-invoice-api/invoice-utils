@@ -1,30 +1,17 @@
-import json
-import pathlib
 from datetime import datetime
 from decimal import Decimal
-from json import JSONDecodeError
 from logging import getLogger
 
 from invoice_utils.models import InvoicedItem
-from invoice_utils.engine._errors import InvoicingInputError, InvoicingInputFormatError
 
 from ._currency import BnrFxRateRule, CurrencyRule
 from ._header import HeaderRule
 
+
 class InvoicingEngine:
-    def __init__(self, file_name: str):
+    def __init__(self, rules: list[dict]):
         self._log = getLogger(self.__class__.__name__)
-        if not file_name:
-            raise InvoicingInputError(file_name)
-        fpath = pathlib.Path(file_name)
-        if not fpath.exists():
-            raise InvoicingInputError(file_name)
-
-        try:
-            self.__rules: list[dict] = json.loads(fpath.read_bytes())
-        except JSONDecodeError as ex:
-            raise InvoicingInputFormatError(fpath.name) from ex
-
+        self.__rules = rules
         self.__init_invoice()
 
     def __init_invoice(self):
