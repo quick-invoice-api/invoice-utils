@@ -417,13 +417,45 @@ def test_repo_get_by_key_overwrites_rules_if_given_valid_rule_template_name(
     }
 
 
-def test_generate_invoice_raises_error_if_rule_template_name_is_invalid(
-    environment, http, server, mock_render, email_invoice_request_body, template_repo
+def test_generate_invoice_raises_error_if_given_rule_template_name_is_invalid(
+    http, server, mock_render, email_invoice_request_body, template_repo, default_template
 ):
-    email_invoice_request_body["rule_template_name"] = "some_template"
-    template_repo.get_by_key.return_value = (False, None)
+    email_invoice_request_body["rule_template_name"] = "invalid_name"
+    template_repo.get_by_key.side_effect = [(True, default_template), (False, None)]
 
     res = http.post("/invoice", json=email_invoice_request_body)
 
     assert res.status_code == 400
     assert res.json() == {"detail": "Rule Template does not exist."}
+
+
+def test_get_by_key_raises_error_if_default_rule_template_fails(
+    http, server, mock_render, email_invoice_request_body, template_repo
+):
+    template_repo.get_by_key.return_value = (False, None)
+    res = http.post("/invoice", json=email_invoice_request_body)
+
+    assert res.status_code == 400
+    assert res.json() == {"detail": "Rule Template does not exist."}
+
+
+def test_generate_invoice_raises_error_if_invalid_default_rules_and_invalid_given_rules(
+    http, server, mock_render, email_invoice_request_body, template_repo
+):
+    email_invoice_request_body["rule_template_name"] = "invalid_name"
+    template_repo.get_by_key.side_effect = [(False, None), (False, None)]
+
+    res = http.post("/invoice", json=email_invoice_request_body)
+
+    assert res.status_code == 400
+    assert res.json() == {"detail": "Rule Template does not exist."}
+
+
+def test_generate_invoice_returns_2xx_with_invalid_default_rules_but_valid_given_rules(
+    http, server, mock_render, email_invoice_request_body, template_repo, default_template
+):
+    email_invoice_request_body["rule_template_name"] = "valid-name"
+    template_repo.get_by_key.side_effect = [(False, None), (True, default_template)]
+    res = http.post("/invoice", json=email_invoice_request_body)
+
+    assert res.status_code == 201
