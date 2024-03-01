@@ -1,29 +1,30 @@
-import json
-from datetime import datetime
-from decimal import Decimal
-from pathlib import Path
+from contextlib import asynccontextmanager
 
-from invoice_utils.engine import InvoicingEngine
-from invoice_utils.models import InvoicedItem
-from invoice_utils.render import PdfInvoiceRenderer
+from dotenv import load_dotenv
+from fastapi import FastAPI
+import invoice_utils.depends as di
+load_dotenv()
+import invoice_utils.config as config
+from invoice_utils.api import *
 
-root_dir = Path(__file__).parent
-investigo_rules = str(root_dir / "basic.json")
-with open(investigo_rules, "r") as file:
-    rules = json.loads(file.read())
 
-invoiced_items = [
-    (1, datetime(2022, 10, 2),
-     [InvoicedItem(
-         text="Rendered services according to contract no. 1 from 2016",
-         quantity=Decimal("4"),
-         unit_price=Decimal("25.0")
-     )]),
-]
-engine = InvoicingEngine(rules)
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    repo = di.template_repo()
 
-for invoice in invoiced_items:
-    context = engine.process(*invoice)
-    renderer = PdfInvoiceRenderer("invoice")
-    out_path = root_dir / f"{invoice[1]:%Y%m%d}-{invoice[0]:04}-invoice.pdf"
-    renderer.render(context, str(out_path), persist=True)
+    if not repo.exists(config.DEFAULT_RULE_TEMPLATE_NAME):
+        raise Exception()
+    if not repo.exists(config.INVOICE_UTILS_RULE_TEMPLATE_NAME):
+        config.INVOICE_UTILS_RULE_TEMPLATE_NAME = config.DEFAULT_RULE_TEMPLATE_NAME
+    yield
+
+
+# API setup
+API_PATH_PREFIX = "/api/v1"
+app = FastAPI(lifespan=lifespan)
+app.include_router(template_router, prefix=API_PATH_PREFIX)
+app.include_router(templates_router, prefix=API_PATH_PREFIX)
+app.include_router(invoices_router, prefix=API_PATH_PREFIX)
+
+app.add_exception_handler(InvoiceRequestInputError, input_error_handler)
+app.add_exception_handler(InvoiceRequestEmailError, email_error_handler)
