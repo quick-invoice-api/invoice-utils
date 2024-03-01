@@ -1,115 +1,34 @@
 import os.path
 import smtplib
-from contextlib import asynccontextmanager
-from datetime import datetime
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from http import HTTPStatus
 from os.path import basename
 
 from dotenv import load_dotenv
-from logging import basicConfig, getLogger, DEBUG
+from logging import getLogger
 from pathlib import Path
-from sys import stdout
-from typing import Optional
 from email.mime.text import MIMEText
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import HTTPException, Depends, APIRouter
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from invoice_utils.api import template_router, templates_router
+from invoice_utils.api._errors import InvoiceRequestInputError, InvoiceRequestEmailError
+from invoice_utils.api._request import InvoiceRequest
 from invoice_utils.dal import Repository, Template
 import invoice_utils.depends as di
 from invoice_utils.engine import InvoicingEngine
-from invoice_utils.models import InvoicedItem
-load_dotenv()  # Need to do this now for it to work.
+
 import invoice_utils.config as config
 from invoice_utils.render import PdfInvoiceRenderer
 
 
-# basic setup
-basicConfig(stream=stdout, level=DEBUG)
-log = getLogger("invoice-utils")
+log = getLogger(__name__)
+router = APIRouter(prefix="/invoices")
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    repo = di.template_repo()
-
-    if not repo.exists(config.DEFAULT_RULE_TEMPLATE_NAME):
-        raise Exception()
-    if not repo.exists(config.INVOICE_UTILS_RULE_TEMPLATE_NAME):
-        config.INVOICE_UTILS_RULE_TEMPLATE_NAME = config.DEFAULT_RULE_TEMPLATE_NAME
-    yield
-
-
-# API setup
-API_PATH_PREFIX = "/api/v1"
-app = FastAPI(lifespan=lifespan)
-app.include_router(template_router, prefix=API_PATH_PREFIX)
-app.include_router(templates_router, prefix=API_PATH_PREFIX)
-
-
-class InvoiceRequestHeader(BaseModel):
-    number: str
-    timestamp: datetime
-    items: list
-
-
-class InvoiceEntityBank(BaseModel):
-    iban: str
-    name: str
-
-
-class InvoiceTaxInfo(BaseModel):
-    id: str
-    registration_number: Optional[str] = None
-
-
-class InvoiceEntity(BaseModel):
-    name: str
-    address: str
-    bank: Optional[InvoiceEntityBank] = None
-    tax_info: InvoiceTaxInfo
-    admin_location: Optional[str] = None
-
-
-class InvoiceRequest(BaseModel):
-    header: InvoiceRequestHeader
-    send_mail: bool = False
-    address: str = None
-    rule_template_name: str = None
-    buyer: InvoiceEntity
-    seller: InvoiceEntity
-    items: list[InvoicedItem]
-
-
-class InvoiceRequestInputError(Exception):
-    def __init__(self, message: str):
-        self.message = message
-
-
-class InvoiceRequestEmailError(Exception):
-    def __init__(self, message: str):
-        self.message = message
-
-
-@app.exception_handler(InvoiceRequestInputError)
-def input_error_handler(request: InvoiceRequest, exc: InvoiceRequestInputError):
-    return JSONResponse(
-        status_code=422,
-        content={"message": f"{exc.message}"},
-    )
-
-
-@app.exception_handler(InvoiceRequestEmailError)
-def email_error_handler(request: InvoiceRequest, exc: InvoiceRequestEmailError):
-    return JSONResponse(status_code=502, content={"message": f"{exc.message}"})
-
-
-@app.post("/invoice", status_code=201)
+@router.post("/", status_code=201)
 def generate_invoice(request: InvoiceRequest, repo: Repository[str, Template] = Depends(di.template_repo)):
     found, rule_template = repo.get_by_key(config.INVOICE_UTILS_RULE_TEMPLATE_NAME)
     if request.rule_template_name:
@@ -127,7 +46,7 @@ def generate_invoice(request: InvoiceRequest, repo: Repository[str, Template] = 
 
 
 def _render_invoice(context, request):
-    root_dir = Path(__file__).parent
+    root_dir = Path(__file__).parent.parent
     renderer = PdfInvoiceRenderer("invoice")
     invoice_name = f"{request.header.timestamp:%Y%m%d}-{int(request.header.number):04}-invoice.pdf"
     invoice_path = root_dir / config.INVOICE_UTILS_INVOICE_DIR / invoice_name

@@ -97,7 +97,7 @@ def template_repo(default_template, request):
 @pytest.fixture()
 def http(environment, monkeypatch, template_repo):
     with patch("dotenv.load_dotenv", MagicMock(name="load_dotenv")):
-        import invoice_utils.web as web
+        import invoice_utils.__main__ as web
         web.app.dependency_overrides[di.template_repo] = lambda: template_repo
 
         return TestClient(web.app)
