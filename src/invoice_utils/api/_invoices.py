@@ -5,13 +5,11 @@ from email.mime.multipart import MIMEMultipart
 from http import HTTPStatus
 from os.path import basename
 
-from dotenv import load_dotenv
 from logging import getLogger
 from pathlib import Path
 from email.mime.text import MIMEText
 
 from fastapi import HTTPException, Depends, APIRouter
-from fastapi.responses import JSONResponse
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from invoice_utils.api._errors import InvoiceRequestInputError, InvoiceRequestEmailError
@@ -46,13 +44,13 @@ def generate_invoice(request: InvoiceRequest, repo: Repository[str, Template] = 
 
 
 def _render_invoice(context, request):
-    root_dir = Path(__file__).parent.parent
+    invoices_dir = Path(config.INVOICE_UTILS_INVOICE_DIR).absolute()
     renderer = PdfInvoiceRenderer("invoice")
     invoice_name = f"{request.header.timestamp:%Y%m%d}-{int(request.header.number):04}-invoice.pdf"
-    invoice_path = root_dir / config.INVOICE_UTILS_INVOICE_DIR / invoice_name
-    if not os.path.isdir(root_dir / config.INVOICE_UTILS_INVOICE_DIR):
+    invoice_path = invoices_dir / invoice_name
+    if not os.path.isdir(invoices_dir):
         raise HTTPException(status_code=507, detail="No local storage available for invoices")
-    if not os.access(root_dir / config.INVOICE_UTILS_INVOICE_DIR, os.W_OK):
+    if not os.access(invoices_dir, os.W_OK):
         raise HTTPException(status_code=507, detail="Insufficient rights to store invoice")
     invoice_content = renderer.render(context, str(invoice_path))
     return invoice_content, invoice_path
