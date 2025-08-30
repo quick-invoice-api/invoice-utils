@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "invoice-utils"
-version = "0.3.0"
+version = "0.3.1"
 description = ""
 authors = [
     "Adrian Moloce <adrian.moloce.dev@gmail.com>",
