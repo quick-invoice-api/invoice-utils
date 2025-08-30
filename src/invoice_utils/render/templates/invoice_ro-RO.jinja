@@ -101,7 +101,7 @@
             </dd>
             <dt>Taxe</dt>
             <dd>
-                {{ totals.extra.taxes | sum(attribute='value') | number_format }} {{ header.currency.main }}
+                {{ totals.taxes | sum(attribute='value') | number_format }} {{ header.currency.main }}
                 {% for t in totals.extra.currencies %}
                     <br/>
                     <small class="currency">{{ t.taxes | sum(attribute='value') | number_format }} {{ t.currency }}</small>
