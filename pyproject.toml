@@ -4,9 +4,12 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "invoice-utils"
-version = "0.2.1"
+version = "0.3.0"
 description = ""
-authors = ["adrian.moloce <adrian.moloce.dev@gmail.com>"]
+authors = [
+    "Adrian Moloce <adrian.moloce.dev@gmail.com>",
+    "Andrei Olar <andrei.olar@gmail.com>",
+]
 license = "MIT"
 packages = [
     { include = "invoice_utils", from = "src" }

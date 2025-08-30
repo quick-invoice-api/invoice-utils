@@ -14,7 +14,7 @@ FROM base as test
 
 RUN apk add --no-cache $BUILD_PKGS $RUNTIME_PKGS && poetry install --no-root && apk del $BUILD_PKGS
 COPY . .
-RUN poetry install && mkdir -p src/invoice_utils/invoices
+RUN poetry install && mkdir -p invoices
 
 FROM base
 ENV PORT=8000
