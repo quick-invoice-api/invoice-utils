@@ -115,14 +115,16 @@
                 {% endfor %}
             </dd>
         </dl>
+        {% if header.currency is defined and header.currency.exchangeRates is not none and header.currency.exchangeRates|length > 0 %}
         <dl class="exchange-rates">
-            <dt>Curs BNR la {{ header.date | datetime_format }}</dt>
+            <dt>Curs BNR la {{ header.currency.date | datetime_format }}</dt>
             <dd>
                 {% for key in header.currency.exchangeRates %}
                 1 {{ header.currency.main }} = {{ header.currency.exchangeRates[key] }} {{ key }}
                 {% endfor %}
             </dd>
         </dl>
+        {% endif %}
     </div>
 </main>
 <footer>
