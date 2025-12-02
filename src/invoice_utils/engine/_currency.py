@@ -12,13 +12,14 @@ class BaseCurrencyRule(Callable):
     def __init__(self, invoice: dict):
         self._invoice = invoice
 
-    def _set_currency_info(self, main, rates, date=utcnow()):
+    def _set_currency_info(self, main, rates, date=None):
         currency_info: dict = self._invoice["header"].get("currency", {})
         currency_info.update({
             "main": main,
-            "date": date,
             "exchangeRates": rates,
         })
+        if date is not None:
+            currency_info["date"] = date
         self._invoice["header"]["currency"] = currency_info
 
 
@@ -65,6 +66,7 @@ class BnrFxRateRule(BaseCurrencyRule):
             return
         rates = {}
         symbol = bnr_rule.get("symbol", "RON")
+        bnr_fx_date = None
         try:
             res = requests.get(
                 f"https://bnr.ro/files/xml/years/nbrfxrates{self.__invoice_date.year}.xml",
@@ -75,21 +77,20 @@ class BnrFxRateRule(BaseCurrencyRule):
             invoice_date_str = self.__invoice_date.strftime(bnr_date_format)
             date_rates = None
             min_days = 20
-            cube_date = None
             for cube_node in root.findall(".//{http://www.bnr.ro/xsd}Cube"):
-                cube_date = cube_node.attrib.get("date")
-                if cube_date is None:
+                bnr_fx_date = cube_node.attrib.get("date")
+                if bnr_fx_date is None:
                     continue
-                cube_date = datetime.strptime(cube_date, bnr_date_format)
-                date_diff = abs((cube_date - self.__invoice_date.replace(tzinfo=None)).days)
+                bnr_fx_date = datetime.strptime(bnr_fx_date, bnr_date_format)
+                date_diff = abs((bnr_fx_date - self.__invoice_date.replace(tzinfo=None)).days)
                 if date_diff < min_days:
                     min_days = date_diff
                     date_rates = cube_node
-            if date_rates is None or cube_date is None:
+            if date_rates is None:
                 self._log.info("can't find BNR fx rates for %s", invoice_date_str)
                 return
-            if min_days > 0:
-                self._log.info("found BNR fx rate for %s, not %s", cube_date.strftime("%Y-%m-%d"), invoice_date_str)
+            if min_days > 0 and bnr_fx_date is not None:
+                self._log.info("found BNR fx rate for %s, not %s", bnr_fx_date.strftime("%Y-%m-%d"), invoice_date_str)
 
             rate = next(iter(date_rates.findall(f"{{http://www.bnr.ro/xsd}}Rate[@currency='{symbol}']")))
             rates["RON"] = Decimal(rate.text)
@@ -100,4 +101,4 @@ class BnrFxRateRule(BaseCurrencyRule):
         except Exception as exc:
             self._log.error("download error on BNR fx-rates", exc_info=exc)
         finally:
-            self._set_currency_info(symbol, rates, cube_date)
+            self._set_currency_info(symbol, rates, bnr_fx_date)
