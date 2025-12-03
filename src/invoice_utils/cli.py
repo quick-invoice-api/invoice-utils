@@ -56,3 +56,7 @@ def _make_invoices(
 
 def run_command():
     run(_make_invoices)
+
+
+if __name__ == "__main__":
+    run_command()

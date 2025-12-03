@@ -5,18 +5,21 @@ from typing import Callable
 from xml.etree import ElementTree as Etree
 
 import requests
+from arrow import utcnow
 
 
 class BaseCurrencyRule(Callable):
     def __init__(self, invoice: dict):
         self._invoice = invoice
 
-    def _set_currency_info(self, main, rates):
+    def _set_currency_info(self, main, rates, date=None):
         currency_info: dict = self._invoice["header"].get("currency", {})
         currency_info.update({
             "main": main,
             "exchangeRates": rates,
         })
+        if date is not None:
+            currency_info["date"] = date
         self._invoice["header"]["currency"] = currency_info
 
 
@@ -63,28 +66,39 @@ class BnrFxRateRule(BaseCurrencyRule):
             return
         rates = {}
         symbol = bnr_rule.get("symbol", "RON")
+        bnr_fx_date = None
         try:
             res = requests.get(
                 f"https://bnr.ro/files/xml/years/nbrfxrates{self.__invoice_date.year}.xml",
                 headers={"Accept": "text/xml", "Accept-Encoding": "utf-8"}
             )
             root = Etree.fromstring(res.text)
-            invoice_date_str = self.__invoice_date.strftime("%Y-%m-%d")
+            bnr_date_format = "%Y-%m-%d"
+            invoice_date_str = self.__invoice_date.strftime(bnr_date_format)
             date_rates = None
+            min_days = 20
             for cube_node in root.findall(".//{http://www.bnr.ro/xsd}Cube"):
-                if cube_node.attrib["date"] == invoice_date_str:
+                bnr_fx_date = cube_node.attrib.get("date")
+                if bnr_fx_date is None:
+                    continue
+                bnr_fx_date = datetime.strptime(bnr_fx_date, bnr_date_format)
+                date_diff = abs((bnr_fx_date - self.__invoice_date.replace(tzinfo=None)).days)
+                if date_diff < min_days:
+                    min_days = date_diff
                     date_rates = cube_node
             if date_rates is None:
                 self._log.info("can't find BNR fx rates for %s", invoice_date_str)
                 return
+            if min_days > 0 and bnr_fx_date is not None:
+                self._log.info("found BNR fx rate for %s, not %s", bnr_fx_date.strftime("%Y-%m-%d"), invoice_date_str)
 
-            for rate in date_rates.findall("{http://www.bnr.ro/xsd}Rate"):
-                currency = rate.attrib["currency"]
-                if currency == symbol:
-                    rates["RON"] = Decimal(rate.text)
+            rate = next(iter(date_rates.findall(f"{{http://www.bnr.ro/xsd}}Rate[@currency='{symbol}']")))
+            rates["RON"] = Decimal(rate.text)
+        except StopIteration:
+            self._log.info("couldn't find BNR fx rate for symbol %s", symbol)
         except Etree.ParseError:
             self._log.warning("invalid XML downloaded from BNR")
         except Exception as exc:
             self._log.error("download error on BNR fx-rates", exc_info=exc)
         finally:
-            self._set_currency_info(symbol, rates)
+            self._set_currency_info(symbol, rates, bnr_fx_date)

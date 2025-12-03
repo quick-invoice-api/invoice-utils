@@ -140,5 +140,6 @@ def test_engine_bnr_invoice_date_is_not_found(engine, invoiced_item, bnr_res, in
     with caplog.at_level("INFO"):
         result = engine.process(TEST_INVOICE_NUMBER, invoice_date, [invoiced_item])
 
-    assert result["header"]["currency"]["exchangeRates"] == {}
-    assert caplog.messages[0] == f"can't find BNR fx rates for {invoice_date.strftime('%Y-%m-%d')}"
+    assert result["header"]["currency"]["exchangeRates"] == {"RON": Decimal("4.9273")}
+    assert result["header"]["currency"]["date"] == datetime(2011, 11, 11)
+    assert caplog.messages[0] == f"found BNR fx rate for 2011-11-11, not {invoice_date.strftime('%Y-%m-%d')}"
